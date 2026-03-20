@@ -18,3 +18,4 @@ numpy==1.26.4
 pandas==2.2.2
 tqdm==4.66.4
 optuna==3.6.1
+imbalanced-learn==0.12.3

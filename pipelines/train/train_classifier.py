@@ -5,6 +5,7 @@ import numpy as np
 import pickle
 from pathlib import Path
 
+from imblearn.over_sampling import SMOTE
 from loguru import logger
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
@@ -34,27 +35,30 @@ def main() -> None:
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # SMOTE oversampling on train set only — val/test remain untouched
+    smote = SMOTE(random_state=42, k_neighbors=min(5, sum(y_train == 1) - 1))
+    X_train_bal, y_train_bal = smote.fit_resample(X_train, y_train)
+    logger.info(f"After SMOTE: {dict(zip(*np.unique(y_train_bal, return_counts=True)))}")
+
     # Logistic Regression baseline
     lr = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)
-    lr.fit(X_train, y_train)
+    lr.fit(X_train_bal, y_train_bal)
     pickle.dump(lr, open(MODELS_DIR / "logistic_regression.pkl", "wb"))
     logger.info("Logistic regression trained and saved")
 
-    # XGBoost
-    scale_pos_weight = sum(y_train == 0) / max(sum(y_train == 1), 1)
+    # XGBoost — trained on SMOTE-balanced data, early stopping on unbalanced val
     xgb = XGBClassifier(
         n_estimators=300,
         max_depth=5,
         learning_rate=0.05,
         subsample=0.8,
         colsample_bytree=0.8,
-        scale_pos_weight=scale_pos_weight,
         eval_metric="logloss",
         early_stopping_rounds=20,
         random_state=42,
         verbosity=0,
     )
-    xgb.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+    xgb.fit(X_train_bal, y_train_bal, eval_set=[(X_val, y_val)], verbose=False)
 
     # Calibrate on val set
     calibrated = CalibratedClassifierCV(xgb, method="sigmoid", cv="prefit")
