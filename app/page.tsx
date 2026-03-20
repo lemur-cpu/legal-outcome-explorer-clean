@@ -14,6 +14,7 @@ import { Scale, TrendingUp, BarChart2, Clock, FileText } from "lucide-react";
 import type { QueryResponse, CaseResult } from "@/lib/types";
 import { submitQuery } from "@/lib/api";
 import { QueryBar } from "@/components/search/QueryBar";
+import { PredictionCard } from "@/components/prediction/PredictionCard";
 
 type Tab = "results" | "clusters" | "analytics";
 
@@ -52,15 +53,19 @@ export default function Home() {
       >
         {/* ── LEFT: Prediction + SHAP ─────────────────────────────────────── */}
         <aside className="flex flex-col gap-4 p-4 border-r border-border overflow-y-auto">
-          {/* Prediction placeholder */}
-          <div className="rounded-lg bg-surface border border-border p-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
-              Prediction
-            </p>
-            <div className="h-32 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
-              Submit a query to see prediction
+          {/* Prediction */}
+          {queryResponse ? (
+            <PredictionCard prediction={queryResponse.prediction} />
+          ) : (
+            <div className="rounded-lg bg-surface border border-border p-4">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                Prediction
+              </p>
+              <div className="h-32 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
+                Submit a query to see prediction
+              </div>
             </div>
-          </div>
+          )}
 
           {/* SHAP placeholder */}
           <div className="rounded-lg bg-surface border border-border p-4">
