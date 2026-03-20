@@ -256,6 +256,33 @@ export const MOCK_PREDICTION = {
   avgSimilarity: 0.847,   // 0–1
 };
 
+export const MOCK_EMBEDDING_POINTS = [
+  // Affirmed cluster — upper right
+  { id: "e1",  x:  2.3, y:  1.8, outcome: "affirmed" as OutcomeType, title: "Meridian Corp. v. State Securities Bd.", court: "9th Cir.",  year: "2023", practiceArea: "Securities"   },
+  { id: "e2",  x:  1.9, y:  2.6, outcome: "affirmed" as OutcomeType, title: "NovaBio Inc. v. Zenith Pharma",           court: "Fed. Cir.", year: "2023", practiceArea: "Patent"        },
+  { id: "e3",  x:  2.9, y:  1.1, outcome: "affirmed" as OutcomeType, title: "United States v. Hargrove",               court: "5th Cir.",  year: "2023", practiceArea: "Criminal"      },
+  { id: "e4",  x:  3.3, y:  2.2, outcome: "affirmed" as OutcomeType, title: "Blackwood Capital v. First National",     court: "Del. Ch.",  year: "2023", practiceArea: "Corporate"     },
+  { id: "e5",  x:  1.4, y:  3.3, outcome: "affirmed" as OutcomeType, title: "Coastal Energy v. EPA",                   court: "D.C. Cir.", year: "2022", practiceArea: "Administrative"},
+  { id: "e6",  x:  3.5, y:  0.6, outcome: "affirmed" as OutcomeType, title: "Halstead v. First Bank Corp.",            court: "2nd Cir.",  year: "2024", practiceArea: "Banking"       },
+  { id: "e7",  x:  2.0, y: -0.3, outcome: "affirmed" as OutcomeType, title: "Greystone LLC v. Parsons",                court: "9th Cir.",  year: "2023", practiceArea: "Securities"    },
+  // Reversed cluster — lower left
+  { id: "e8",  x: -2.2, y: -1.8, outcome: "reversed" as OutcomeType, title: "Thornton Labs v. USPTO",                  court: "Fed. Cir.", year: "2024", practiceArea: "Patent"        },
+  { id: "e9",  x: -1.7, y: -2.6, outcome: "reversed" as OutcomeType, title: "Rivera v. Metropolitan Transit Auth.",    court: "2nd Cir.",  year: "2024", practiceArea: "Employment"    },
+  { id: "e10", x: -2.7, y: -1.2, outcome: "reversed" as OutcomeType, title: "Hartford Ins. v. Okonkwo",                court: "7th Cir.",  year: "2023", practiceArea: "Insurance"     },
+  { id: "e11", x: -3.3, y: -2.1, outcome: "reversed" as OutcomeType, title: "Global Pharma v. FDA",                    court: "D.C. Cir.", year: "2022", practiceArea: "Administrative"},
+  { id: "e12", x: -1.5, y: -3.2, outcome: "reversed" as OutcomeType, title: "Apex Fintech v. CardNet Inc.",            court: "S.D.N.Y.", year: "2024", practiceArea: "Antitrust"     },
+  // Remanded cluster — upper left / scattered
+  { id: "e13", x: -2.0, y:  2.1, outcome: "remanded" as OutcomeType, title: "Cascade Health Sys. v. HHS",             court: "D.C. Cir.", year: "2024", practiceArea: "Administrative"},
+  { id: "e14", x: -2.9, y:  1.4, outcome: "remanded" as OutcomeType, title: "Sterling Wireless v. FCC",               court: "D.C. Cir.", year: "2023", practiceArea: "Telecom"       },
+  { id: "e15", x: -1.0, y:  2.9, outcome: "remanded" as OutcomeType, title: "Navarro v. Dept. of Labor",              court: "9th Cir.",  year: "2023", practiceArea: "Employment"    },
+  { id: "e16", x: -3.6, y:  0.4, outcome: "remanded" as OutcomeType, title: "BioCore Inc. v. NIH",                    court: "Fed. Cir.", year: "2022", practiceArea: "Patent"        },
+  // Scattered mid-field
+  { id: "e17", x:  0.4, y: -2.8, outcome: "affirmed" as OutcomeType, title: "Paragon Steel v. NLRB",                  court: "6th Cir.",  year: "2023", practiceArea: "Labor"         },
+  { id: "e18", x:  1.2, y: -2.0, outcome: "reversed" as OutcomeType, title: "DataSync v. Privacy Comm.",              court: "9th Cir.",  year: "2024", practiceArea: "Privacy"       },
+  { id: "e19", x: -0.5, y: -0.9, outcome: "affirmed" as OutcomeType, title: "Thornbury v. Collins",                   court: "11th Cir.", year: "2023", practiceArea: "Civil Rights"  },
+  { id: "e20", x:  0.9, y:  0.7, outcome: "remanded" as OutcomeType, title: "Verizon Media v. State AG",              court: "2nd Cir.",  year: "2024", practiceArea: "Antitrust"     },
+];
+
 export const MOCK_SHAP_VALUES = [
   { feature: "Circuit (9th)",       value: 0.28,  direction: "positive" as const },
   { feature: "Prior outcome rate",  value: 0.22,  direction: "positive" as const },

@@ -67,5 +67,7 @@ export interface EmbeddingPoint {
   outcome: OutcomeType;
   title: string;
   practiceArea: string;
+  court?: string;
+  year?: string;
   similarity?: number;
 }

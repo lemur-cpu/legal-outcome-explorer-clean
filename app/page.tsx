@@ -9,7 +9,8 @@ import { AffirmRateChart } from "@/components/dashboard/affirm-rate-chart";
 import { CaseTable } from "@/components/dashboard/case-table";
 import { JudgePanel } from "@/components/dashboard/judge-panel";
 import { StatCard } from "@/components/ui/stat-card";
-import { MOCK_CASES, SUMMARY_STATS, MOCK_PREDICTION, MOCK_SHAP_VALUES } from "@/data/mock";
+import { MOCK_CASES, SUMMARY_STATS, MOCK_PREDICTION, MOCK_SHAP_VALUES, MOCK_EMBEDDING_POINTS } from "@/data/mock";
+import { EmbeddingScatter } from "@/components/visualization/EmbeddingScatter";
 import { Scale, TrendingUp, BarChart2, Clock, FileText } from "lucide-react";
 import type { CaseResult, PredictionResult, ShapValue } from "@/lib/types";
 import { QueryBar } from "@/components/search/QueryBar";
@@ -236,8 +237,26 @@ export default function Home() {
             )}
 
             {activeTab === "clusters" && (
-              <div className="p-6 flex items-center justify-center h-full text-text-muted text-sm">
-                Cluster view coming soon…
+              <div className="p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p
+                    className="text-text-muted uppercase"
+                    style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.12em" }}
+                  >
+                    Embedding Space · {MOCK_EMBEDDING_POINTS.length} cases
+                  </p>
+                  <p
+                    className="text-text-muted"
+                    style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10 }}
+                  >
+                    Hover a point to inspect
+                  </p>
+                </div>
+                <EmbeddingScatter
+                  points={MOCK_EMBEDDING_POINTS}
+                  queryPoint={{ x: 0.3, y: -0.8, title: "Your Query" }}
+                  selectedId={selectedCase?.id}
+                />
               </div>
             )}
 
