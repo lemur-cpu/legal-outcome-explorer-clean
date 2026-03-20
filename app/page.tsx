@@ -256,6 +256,7 @@ export default function Home() {
                   points={MOCK_EMBEDDING_POINTS}
                   queryPoint={{ x: 0.3, y: -0.8, title: "Your Query" }}
                   selectedId={selectedCase?.id}
+                  retrievedIds={results.map(r => `e${r.id}`)}
                 />
               </div>
             )}
