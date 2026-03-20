@@ -15,6 +15,7 @@ import type { QueryResponse, CaseResult } from "@/lib/types";
 import { submitQuery } from "@/lib/api";
 import { QueryBar } from "@/components/search/QueryBar";
 import { PredictionCard } from "@/components/prediction/PredictionCard";
+import { FeatureImportanceChart } from "@/components/explainability/FeatureImportanceChart";
 
 type Tab = "results" | "clusters" | "analytics";
 
@@ -67,15 +68,19 @@ export default function Home() {
             </div>
           )}
 
-          {/* SHAP placeholder */}
-          <div className="rounded-lg bg-surface border border-border p-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
-              Feature Importance
-            </p>
-            <div className="h-48 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
-              SHAP values will appear here
+          {/* SHAP */}
+          {queryResponse ? (
+            <FeatureImportanceChart shapValues={queryResponse.shapValues} />
+          ) : (
+            <div className="rounded-lg bg-surface border border-border p-4">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                Feature Importance
+              </p>
+              <div className="h-48 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
+                SHAP values will appear here
+              </div>
             </div>
-          </div>
+          )}
         </aside>
 
         {/* ── CENTER: QueryBar + Tabs ──────────────────────────────────────── */}
