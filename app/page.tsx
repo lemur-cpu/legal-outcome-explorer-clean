@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Nav } from "@/components/dashboard/nav";
 import { OutcomeTrendChart } from "@/components/dashboard/outcome-trend-chart";
 import { PracticeAreaChart } from "@/components/dashboard/practice-area-chart";
@@ -21,6 +21,85 @@ import { CaseViewer } from "@/components/viewer/CaseViewer";
 
 type Tab = "results" | "clusters" | "analytics";
 
+// ---------------------------------------------------------------------------
+// Skeleton primitives
+// ---------------------------------------------------------------------------
+
+function SkeletonBlock({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <div
+      className={`rounded bg-surface-elevated animate-pulse ${className ?? ""}`}
+      style={style}
+    />
+  );
+}
+
+function PredictionSkeleton() {
+  return (
+    <div className="rounded-lg bg-surface border border-border p-4 space-y-4">
+      <SkeletonBlock className="h-3 w-24" />
+      <SkeletonBlock className="h-8 w-28 mx-auto" />
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <SkeletonBlock className="h-3 w-20" />
+          <SkeletonBlock className="h-3 w-8" />
+        </div>
+        <SkeletonBlock className="h-2 w-full" />
+      </div>
+      <div className="pt-1 border-t border-border space-y-2">
+        <div className="flex justify-between">
+          <SkeletonBlock className="h-3 w-24" />
+          <SkeletonBlock className="h-3 w-6" />
+        </div>
+        <div className="flex justify-between">
+          <SkeletonBlock className="h-3 w-20" />
+          <SkeletonBlock className="h-3 w-8" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShapSkeleton() {
+  return (
+    <div className="rounded-lg bg-surface border border-border p-4 space-y-4">
+      <SkeletonBlock className="h-3 w-32" />
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="space-y-1.5">
+          <div className="flex justify-between">
+            <SkeletonBlock className="h-3" style={{ width: `${55 + i * 8}%` } as React.CSSProperties} />
+            <SkeletonBlock className="h-3 w-8" />
+          </div>
+          <SkeletonBlock className="h-1.5 w-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ResultsSkeleton() {
+  return (
+    <div className="divide-y divide-border/50">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="px-4 py-3.5 space-y-2">
+          <SkeletonBlock className="h-3.5 w-3/4" />
+          <SkeletonBlock className="h-3 w-full" />
+          <SkeletonBlock className="h-3 w-2/3" />
+          <div className="flex gap-1.5 pt-0.5">
+            <SkeletonBlock className="h-4 w-16" />
+            <SkeletonBlock className="h-4 w-10" />
+            <SkeletonBlock className="h-4 w-14" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("results");
   const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
@@ -29,11 +108,11 @@ export default function Home() {
 
   async function handleQuery(query: string) {
     setIsLoading(true);
+    setActiveTab("results");
     try {
       const response = await submitQuery(query);
       setQueryResponse(response);
       setSelectedCase(response.results[0] ?? null);
-      setActiveTab("results");
     } finally {
       setIsLoading(false);
     }
@@ -45,44 +124,79 @@ export default function Home() {
     { id: "analytics", label: "Analytics" },
   ];
 
+  // Derive left-panel key for AnimatePresence
+  const leftKey = isLoading ? "loading" : queryResponse ? "data" : "empty";
+  // Derive results key
+  const resultsKey = isLoading ? "loading" : queryResponse ? "data" : "empty";
+
   return (
     <div className="h-screen flex flex-col bg-background text-text-primary overflow-hidden">
       <Nav />
 
-      {/* 3-column grid — fills remaining viewport height */}
+      {/* 3-column grid */}
       <div
         className="flex-1 grid min-h-0"
         style={{ gridTemplateColumns: "300px 1fr 380px" }}
       >
         {/* ── LEFT: Prediction + SHAP ─────────────────────────────────────── */}
         <aside className="flex flex-col gap-4 p-4 border-r border-border overflow-y-auto">
-          {/* Prediction */}
-          {queryResponse ? (
-            <PredictionCard prediction={queryResponse.prediction} />
-          ) : (
-            <div className="rounded-lg bg-surface border border-border p-4">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
-                Prediction
-              </p>
-              <div className="h-32 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
-                Submit a query to see prediction
-              </div>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {leftKey === "empty" && (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                <div className="rounded-lg bg-surface border border-border p-4">
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                    Prediction
+                  </p>
+                  <div className="h-32 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
+                    Submit a query to see prediction
+                  </div>
+                </div>
+                <div className="rounded-lg bg-surface border border-border p-4">
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                    Feature Importance
+                  </p>
+                  <div className="h-48 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
+                    SHAP values will appear here
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-          {/* SHAP */}
-          {queryResponse ? (
-            <FeatureImportanceChart shapValues={queryResponse.shapValues} />
-          ) : (
-            <div className="rounded-lg bg-surface border border-border p-4">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
-                Feature Importance
-              </p>
-              <div className="h-48 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
-                SHAP values will appear here
-              </div>
-            </div>
-          )}
+            {leftKey === "loading" && (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                <PredictionSkeleton />
+                <ShapSkeleton />
+              </motion.div>
+            )}
+
+            {leftKey === "data" && queryResponse && (
+              <motion.div
+                key="data"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-4"
+              >
+                <PredictionCard prediction={queryResponse.prediction} />
+                <FeatureImportanceChart shapValues={queryResponse.shapValues} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </aside>
 
         {/* ── CENTER: QueryBar + Tabs ──────────────────────────────────────── */}
@@ -114,17 +228,49 @@ export default function Home() {
           {/* Tab content */}
           <div className="flex-1 overflow-y-auto border-t border-border bg-surface rounded-tr-lg">
             {activeTab === "results" && (
-              queryResponse ? (
-                <ResultsList
-                  results={queryResponse.results}
-                  selectedId={selectedCase?.id ?? null}
-                  onSelect={setSelectedCase}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-text-muted text-sm">
-                  Submit a query to see results
-                </div>
-              )
+              <AnimatePresence mode="wait">
+                {resultsKey === "empty" && (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-center h-full text-text-muted text-sm"
+                  >
+                    Submit a query to see results
+                  </motion.div>
+                )}
+
+                {resultsKey === "loading" && (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ResultsSkeleton />
+                  </motion.div>
+                )}
+
+                {resultsKey === "data" && queryResponse && (
+                  <motion.div
+                    key="data"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="h-full"
+                  >
+                    <ResultsList
+                      results={queryResponse.results}
+                      selectedId={selectedCase?.id ?? null}
+                      onSelect={setSelectedCase}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             )}
 
             {activeTab === "clusters" && (
@@ -135,24 +281,20 @@ export default function Home() {
 
             {activeTab === "analytics" && (
               <div className="p-6 space-y-6">
-                {/* Summary stats */}
                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                  <StatCard label="Total Cases"      value={SUMMARY_STATS.totalCases.toLocaleString()} icon={FileText}  accent="blue"   delay={0}    />
-                  <StatCard label="Avg Affirm Rate"  value={`${SUMMARY_STATS.avgAffirmRate}%`}          icon={TrendingUp} accent="green"  delay={0.05} />
-                  <StatCard label="This Month"       value={SUMMARY_STATS.casesThisMonth}               icon={BarChart2}  accent="yellow" delay={0.1}  delta={SUMMARY_STATS.casesThisMonthDelta} deltaLabel="vs last month" />
-                  <StatCard label="Avg Decision Days" value={SUMMARY_STATS.avgDecisionDays}             icon={Clock}      accent="blue"   delay={0.15} />
+                  <StatCard label="Total Cases"       value={SUMMARY_STATS.totalCases.toLocaleString()} icon={FileText}  accent="blue"   delay={0}    />
+                  <StatCard label="Avg Affirm Rate"   value={`${SUMMARY_STATS.avgAffirmRate}%`}          icon={TrendingUp} accent="green"  delay={0.05} />
+                  <StatCard label="This Month"        value={SUMMARY_STATS.casesThisMonth}               icon={BarChart2}  accent="yellow" delay={0.1}  delta={SUMMARY_STATS.casesThisMonthDelta} deltaLabel="vs last month" />
+                  <StatCard label="Avg Decision Days" value={SUMMARY_STATS.avgDecisionDays}              icon={Clock}      accent="blue"   delay={0.15} />
                 </div>
 
-                {/* Charts row */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div className="lg:col-span-2"><OutcomeTrendChart /></div>
                   <AffirmRateChart />
                 </div>
 
-                {/* Practice area + outcome distribution */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <PracticeAreaChart />
-
                   <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -177,9 +319,7 @@ export default function Home() {
                         >
                           <div className="flex items-center justify-between text-sm mb-1.5">
                             <span className="text-text-secondary">{item.label}</span>
-                            <span className="font-mono font-medium" style={{ color: item.color }}>
-                              {item.value}%
-                            </span>
+                            <span className="font-mono font-medium" style={{ color: item.color }}>{item.value}%</span>
                           </div>
                           <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
                             <motion.div
@@ -209,13 +349,11 @@ export default function Home() {
                   </motion.div>
                 </div>
 
-                {/* Case table + Judge panel */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                   <div className="xl:col-span-2"><CaseTable /></div>
                   <JudgePanel />
                 </div>
 
-                {/* Footer */}
                 <motion.footer
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
