@@ -16,7 +16,7 @@ function ShapSkeleton() {
       {widths.map((w, i) => (
         <div key={i} className="flex items-center gap-2">
           <div className="shimmer rounded" style={{ width: 140, height: 11 }} />
-          <div className="flex-1 h-1 shimmer rounded-full" />
+          <div className="flex-1 h-1.5 shimmer rounded-full" />
           <div className="shimmer rounded" style={{ width: 36, height: 11 }} />
         </div>
       ))}
@@ -117,7 +117,7 @@ export function FeatureImportanceChart({ shapValues, isLoading = false }: Props)
                   {/* Bar track */}
                   <div
                     className="flex-1 rounded-full relative"
-                    style={{ height: 4, background: "#2a2d3a" }}
+                    style={{ height: 6, background: "#2a2d3a" }}
                   >
                     <motion.div
                       className="absolute left-0 top-0 h-full rounded-full"

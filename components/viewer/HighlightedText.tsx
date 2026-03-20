@@ -74,13 +74,12 @@ export function HighlightedText({ text, spans }: HighlightedTextProps) {
           ) : (
             <span
               key={i}
-              className="cursor-help rounded-sm px-0.5"
+              className="cursor-help"
               style={{
-                background: "rgba(251,191,36,0.2)",
-                textDecoration: "underline",
-                textDecorationColor: "#fbbf24",
-                textDecorationThickness: "1px",
-                textUnderlineOffset: "2px",
+                backgroundColor: "rgba(251, 191, 36, 0.25)",
+                borderBottom: "1px solid #fbbf24",
+                borderRadius: "2px",
+                padding: "0 2px",
               }}
               onMouseEnter={(e) => handleMouseEnter(e, seg.reason)}
               onMouseLeave={handleMouseLeave}
