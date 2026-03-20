@@ -4,3 +4,7 @@ class CrossEncoderReranker:
 
     def rerank(self, query: str, candidates: list[dict], top_k: int = 10) -> list[dict]:
         pass
+
+
+# Singleton used by the query router
+reranker = CrossEncoderReranker()

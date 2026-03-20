@@ -8,3 +8,7 @@ class SHAPExplainer:
 
     def explain(self, features: pd.DataFrame) -> list[dict]:
         pass
+
+
+# Singleton used by the query router
+explainer = SHAPExplainer()

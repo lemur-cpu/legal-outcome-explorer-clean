@@ -11,3 +11,7 @@ class OutcomeClassifier:
 
     def predict(self, features: pd.DataFrame) -> dict:
         pass
+
+
+# Singleton used by the query router
+classifier = OutcomeClassifier()

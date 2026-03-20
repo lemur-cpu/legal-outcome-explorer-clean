@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routers import query, analytics
+from backend.api.routers import analytics, query
 
-app = FastAPI(title="PrecedentIQ API", version="0.1.0")
+app = FastAPI(title="PrecedentIQ API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

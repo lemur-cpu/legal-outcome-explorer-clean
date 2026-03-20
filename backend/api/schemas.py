@@ -1,33 +1,44 @@
-from pydantic import BaseModel
 from typing import Literal
 
-
-OutcomeType = Literal["affirmed", "reversed", "remanded", "settled"]
+from pydantic import BaseModel, Field
 
 
 class QueryRequest(BaseModel):
-    pass
-
-
-class HighlightSpan(BaseModel):
-    pass
-
-
-class CaseResult(BaseModel):
-    pass
+    query: str = Field(..., min_length=10, max_length=2000)
 
 
 class ShapValue(BaseModel):
-    pass
+    feature: str
+    value: float
+    direction: Literal["+", "-"]
+
+
+class CaseResult(BaseModel):
+    case_id: str
+    title: str
+    court: str
+    year: int
+    outcome: str
+    similarity_score: float
+    highlighted_snippets: list[str]
 
 
 class PredictionResult(BaseModel):
-    pass
+    outcome: Literal["affirmed", "reversed"]
+    confidence: float
+    proba_affirmed: float
+    proba_reversed: float
 
 
 class QueryResponse(BaseModel):
-    pass
+    query_id: str
+    prediction: PredictionResult
+    shap_values: list[ShapValue]
+    results: list[CaseResult]
+    latency_ms: int
 
 
 class AnalyticsResponse(BaseModel):
-    pass
+    by_circuit: list[dict]
+    by_year: list[dict]
+    summary: dict
