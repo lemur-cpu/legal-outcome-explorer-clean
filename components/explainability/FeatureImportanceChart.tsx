@@ -1,150 +1,99 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { ShapValue } from "@/lib/types";
 
-const POSITIVE_COLOR = "#4f8ef7";
-const NEGATIVE_COLOR = "#f87171";
+const POS = "#4f8ef7";
+const NEG = "#f87171";
 
-interface TooltipState {
-  visible: boolean;
-  x: number;
-  y: number;
-  feature: string;
-  direction: string;
-  value: number;
-}
-
-interface FeatureImportanceChartProps {
-  shapValues: ShapValue[];
-}
-
-export function FeatureImportanceChart({ shapValues }: FeatureImportanceChartProps) {
-  const [tooltip, setTooltip] = useState<TooltipState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    feature: "",
-    direction: "",
-    value: 0,
-  });
+export function FeatureImportanceChart({ shapValues }: { shapValues: ShapValue[] }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const top6 = shapValues.slice(0, 6);
   const maxAbs = Math.max(...top6.map((s) => Math.abs(s.value)), 0.01);
 
-  function handleMouseEnter(
-    e: React.MouseEvent<HTMLDivElement>,
-    shap: ShapValue
-  ) {
-    const rect = (e.currentTarget as HTMLDivElement)
-      .closest(".shap-container")
-      ?.getBoundingClientRect();
-    const self = e.currentTarget.getBoundingClientRect();
-    setTooltip({
-      visible: true,
-      x: self.right - (rect?.left ?? 0) + 8,
-      y: self.top - (rect?.top ?? 0),
-      feature: shap.feature,
-      direction: shap.direction,
-      value: shap.value,
-    });
-  }
-
-  function handleMouseLeave() {
-    setTooltip((t) => ({ ...t, visible: false }));
-  }
-
   return (
     <div className="rounded-lg bg-surface border border-border p-4">
-      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">
-        Feature Importance
+      {/* Section label */}
+      <p className="text-[10px] font-mono font-semibold text-text-muted uppercase tracking-[0.12em] mb-4">
+        Prediction Factors
       </p>
 
-      <div className="shap-container relative space-y-3">
+      <div className="space-y-1">
         {top6.map((shap, i) => {
-          const color = shap.direction === "positive" ? POSITIVE_COLOR : NEGATIVE_COLOR;
+          const color    = shap.direction === "positive" ? POS : NEG;
           const widthPct = (Math.abs(shap.value) / maxAbs) * 100;
+          const isHovered = hoveredIdx === i;
 
           return (
-            <div key={shap.feature} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-text-secondary truncate max-w-[160px]">
+            <div
+              key={shap.feature}
+              onMouseEnter={() => setHoveredIdx(i)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              className="relative rounded px-1 py-1.5 transition-colors"
+              style={{ background: isHovered ? "rgba(79,142,247,0.06)" : "transparent" }}
+            >
+              <div className="flex items-center gap-2">
+                {/* Feature name — fixed 140px */}
+                <span
+                  className="text-[11px] text-text-secondary truncate shrink-0"
+                  style={{ width: 140 }}
+                >
                   {shap.feature}
                 </span>
+
+                {/* Bar track — flex-1, 4px tall */}
+                <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#21253a" }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: color }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${widthPct}%` }}
+                    transition={{ duration: 0.55, ease: "easeOut", delay: i * 0.06 }}
+                  />
+                </div>
+
+                {/* Value — fixed 40px, right-aligned */}
                 <span
-                  className="font-mono text-[11px] ml-2 shrink-0"
-                  style={{ color }}
+                  className="text-[11px] font-mono shrink-0 text-right"
+                  style={{ width: 40, color }}
                 >
                   {shap.direction === "positive" ? "+" : ""}
                   {shap.value.toFixed(2)}
                 </span>
               </div>
 
-              {/* Bar track */}
-              <div className="h-1.5 bg-surface-elevated rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full cursor-pointer"
-                  style={{ backgroundColor: color }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${widthPct}%` }}
-                  transition={{
-                    duration: 0.6,
-                    ease: "easeOut",
-                    delay: i * 0.06,
-                  }}
-                  onMouseEnter={(e) =>
-                    handleMouseEnter(
-                      e as unknown as React.MouseEvent<HTMLDivElement>,
-                      shap
-                    )
-                  }
-                  onMouseLeave={handleMouseLeave}
-                />
-              </div>
+              {/* Hover tooltip */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    key="tip"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute left-[148px] -top-7 z-20 px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap pointer-events-none border border-border shadow-card"
+                    style={{ background: "#21253a", color }}
+                  >
+                    {shap.direction === "positive" ? "↑ toward affirmed" : "↓ toward reversed"}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
-
-        {/* Tooltip */}
-        {tooltip.visible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute z-10 px-2.5 py-2 rounded bg-surface-elevated border border-border shadow-card text-xs pointer-events-none"
-            style={{ left: tooltip.x, top: tooltip.y }}
-          >
-            <p className="font-medium text-text-primary mb-0.5">{tooltip.feature}</p>
-            <p className="text-text-muted">
-              Direction:{" "}
-              <span
-                style={{
-                  color:
-                    tooltip.direction === "positive"
-                      ? POSITIVE_COLOR
-                      : NEGATIVE_COLOR,
-                }}
-              >
-                {tooltip.direction}
-              </span>
-            </p>
-            <p className="font-mono text-text-secondary">
-              Value: {tooltip.value > 0 ? "+" : ""}
-              {tooltip.value.toFixed(3)}
-            </p>
-          </motion.div>
-        )}
       </div>
 
       {/* Legend */}
-      <div className="mt-4 pt-3 border-t border-border flex items-center gap-4 text-[11px] text-text-muted">
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 text-[10px] font-mono text-text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: POSITIVE_COLOR }} />
-          Toward affirmed
+          <span className="w-2 h-1 rounded-full inline-block" style={{ backgroundColor: POS }} />
+          affirmed
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: NEGATIVE_COLOR }} />
-          Toward reversed
+          <span className="w-2 h-1 rounded-full inline-block" style={{ backgroundColor: NEG }} />
+          reversed
         </span>
       </div>
     </div>
