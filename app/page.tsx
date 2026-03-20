@@ -17,6 +17,7 @@ import { QueryBar } from "@/components/search/QueryBar";
 import { PredictionCard } from "@/components/prediction/PredictionCard";
 import { FeatureImportanceChart } from "@/components/explainability/FeatureImportanceChart";
 import { ResultsList } from "@/components/results/ResultsList";
+import { CaseViewer } from "@/components/viewer/CaseViewer";
 
 type Tab = "results" | "clusters" | "analytics";
 
@@ -233,15 +234,8 @@ export default function Home() {
         </main>
 
         {/* ── RIGHT: Case Viewer ───────────────────────────────────────────── */}
-        <aside className="flex flex-col border-l border-border overflow-y-auto">
-          <div className="p-4 border-b border-border">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-              Case Viewer
-            </p>
-          </div>
-          <div className="flex-1 flex items-center justify-center p-6 text-text-muted text-sm text-center">
-            Select a result to read the case
-          </div>
+        <aside className="flex flex-col border-l border-border overflow-hidden">
+          <CaseViewer selectedCase={selectedCase} />
         </aside>
       </div>
     </div>
