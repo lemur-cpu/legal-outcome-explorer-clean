@@ -12,6 +12,8 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SUMMARY_STATS } from "@/data/mock";
 import { Scale, TrendingUp, BarChart2, Clock, FileText } from "lucide-react";
 import type { QueryResponse, CaseResult } from "@/lib/types";
+import { submitQuery } from "@/lib/api";
+import { QueryBar } from "@/components/search/QueryBar";
 
 type Tab = "results" | "clusters" | "analytics";
 
@@ -20,6 +22,18 @@ export default function Home() {
   const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
   const [selectedCase, setSelectedCase] = useState<CaseResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  async function handleQuery(query: string) {
+    setIsLoading(true);
+    try {
+      const response = await submitQuery(query);
+      setQueryResponse(response);
+      setSelectedCase(response.results[0] ?? null);
+      setActiveTab("results");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "results",   label: "Results"   },
@@ -61,13 +75,9 @@ export default function Home() {
 
         {/* ── CENTER: QueryBar + Tabs ──────────────────────────────────────── */}
         <main className="flex flex-col min-h-0">
-          {/* QueryBar placeholder */}
+          {/* QueryBar */}
           <div className="shrink-0 px-6 py-4 border-b border-border bg-background/80 backdrop-blur-md">
-            <div className="max-w-[520px] mx-auto">
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-text-muted text-sm">
-                <span className="flex-1">Query bar coming in Step 4…</span>
-              </div>
-            </div>
+            <QueryBar onSubmit={handleQuery} isLoading={isLoading} />
           </div>
 
           {/* Tab bar */}
