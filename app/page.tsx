@@ -16,6 +16,7 @@ import { submitQuery } from "@/lib/api";
 import { QueryBar } from "@/components/search/QueryBar";
 import { PredictionCard } from "@/components/prediction/PredictionCard";
 import { FeatureImportanceChart } from "@/components/explainability/FeatureImportanceChart";
+import { ResultsList } from "@/components/results/ResultsList";
 
 type Tab = "results" | "clusters" | "analytics";
 
@@ -112,9 +113,17 @@ export default function Home() {
           {/* Tab content */}
           <div className="flex-1 overflow-y-auto border-t border-border bg-surface rounded-tr-lg">
             {activeTab === "results" && (
-              <div className="p-6 flex items-center justify-center h-full text-text-muted text-sm">
-                Results list coming in Step 7…
-              </div>
+              queryResponse ? (
+                <ResultsList
+                  results={queryResponse.results}
+                  selectedId={selectedCase?.id ?? null}
+                  onSelect={setSelectedCase}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-text-muted text-sm">
+                  Submit a query to see results
+                </div>
+              )
             )}
 
             {activeTab === "clusters" && (
