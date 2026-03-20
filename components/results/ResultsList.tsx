@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { CaseCard } from "./CaseCard";
 import type { CaseResult } from "@/lib/types";
 
@@ -13,13 +13,10 @@ interface ResultsListProps {
 export function ResultsList({ results, selectedId, onSelect }: ResultsListProps) {
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-border flex items-center justify-between">
-        <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-          Results
-        </p>
-        <span className="text-xs font-mono text-text-muted">
-          {results.length} case{results.length !== 1 ? "s" : ""}
+      {/* Count row */}
+      <div className="shrink-0 px-4 py-3 border-b border-border">
+        <span className="text-[11px] font-mono text-text-muted">
+          {results.length} precedent{results.length !== 1 ? "s" : ""} found
         </span>
       </div>
 
@@ -36,16 +33,6 @@ export function ResultsList({ results, selectedId, onSelect }: ResultsListProps)
             />
           ))}
         </AnimatePresence>
-
-        {results.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center justify-center h-32 text-text-muted text-sm"
-          >
-            No results
-          </motion.div>
-        )}
       </div>
     </div>
   );
