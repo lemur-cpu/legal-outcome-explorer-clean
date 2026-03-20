@@ -63,3 +63,13 @@ body {
 .recharts-tooltip-wrapper {
   outline: none;
 }
+
+/* Shimmer skeleton animation */
+@keyframes shimmer {
+  0%, 100% { background-color: #1a1d27; }
+  50%       { background-color: #2a2d3a; }
+}
+
+.shimmer {
+  animation: shimmer 1.6s ease-in-out infinite;
+}
