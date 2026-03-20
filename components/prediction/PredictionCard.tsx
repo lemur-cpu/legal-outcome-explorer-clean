@@ -4,19 +4,23 @@ import { motion } from "framer-motion";
 import type { PredictionResult } from "@/lib/types";
 import type { OutcomeType } from "@/data/mock";
 
-interface OutcomeBadgeProps {
-  outcome: OutcomeType;
-}
+const OUTCOME_COLOR: Record<string, string> = {
+  affirmed: "#34d399",
+  reversed: "#f87171",
+  remanded: "#fbbf24",
+  settled:  "#4f8ef7",
+};
 
-function OutcomeBadge({ outcome }: OutcomeBadgeProps) {
-  const isAffirmed = outcome === "affirmed";
+function OutcomeBadge({ outcome }: { outcome: OutcomeType }) {
+  const color = OUTCOME_COLOR[outcome] ?? "#4f8ef7";
   return (
     <span
-      className="inline-flex items-center px-2.5 py-1 rounded text-sm font-mono font-semibold uppercase tracking-widest"
+      className="inline-flex items-center px-3 py-1.5 rounded text-[14px] font-bold uppercase tracking-widest"
       style={{
-        color: isAffirmed ? "#34d399" : "#f87171",
-        background: isAffirmed ? "rgba(52,211,153,0.12)" : "rgba(248,113,113,0.12)",
-        border: `1px solid ${isAffirmed ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)"}`,
+        fontFamily: "Inter, system-ui, sans-serif",
+        color,
+        background: `${color}1f`,       // 12% opacity
+        border: `1px solid ${color}4d`, // 30% opacity
       }}
     >
       {outcome}
@@ -24,43 +28,35 @@ function OutcomeBadge({ outcome }: OutcomeBadgeProps) {
   );
 }
 
-interface ConfidenceBarProps {
-  value: number; // 0–100
-  outcome: OutcomeType;
-}
-
-function ConfidenceBar({ value, outcome }: ConfidenceBarProps) {
-  const color = outcome === "affirmed" ? "#34d399" : "#f87171";
-  const colorMid = outcome === "affirmed" ? "#4ade80" : "#fca5a5";
-
+function ConfidenceBar({ value, outcome }: { value: number; outcome: OutcomeType }) {
+  const outcomeColor = OUTCOME_COLOR[outcome] ?? "#4f8ef7";
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-text-muted">Confidence</span>
-        <span className="font-mono font-semibold" style={{ color }}>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-mono font-semibold text-text-muted uppercase tracking-widest">
+          Confidence
+        </span>
+        <span className="text-[11px] font-mono font-semibold" style={{ color: outcomeColor }}>
           {value}%
         </span>
       </div>
-      <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
+      {/* Track */}
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#21253a" }}>
         <motion.div
           className="h-full rounded-full"
           style={{
-            background: `linear-gradient(90deg, ${color}, ${colorMid})`,
+            background: `linear-gradient(90deg, #4f8ef7, ${outcomeColor})`,
           }}
           initial={{ width: 0 }}
           animate={{ width: `${value}%` }}
-          transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
         />
       </div>
     </div>
   );
 }
 
-interface PredictionCardProps {
-  prediction: PredictionResult;
-}
-
-export function PredictionCard({ prediction }: PredictionCardProps) {
+export function PredictionCard({ prediction }: { prediction: PredictionResult }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -68,12 +64,12 @@ export function PredictionCard({ prediction }: PredictionCardProps) {
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className="rounded-lg bg-surface border border-border p-4 space-y-4"
     >
-      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+      <p className="text-[10px] font-mono font-semibold text-text-muted uppercase tracking-widest">
         Prediction
       </p>
 
-      {/* Outcome badge */}
-      <div className="flex items-center justify-center py-2">
+      {/* Outcome badge — centered */}
+      <div className="flex items-center justify-center py-1">
         <OutcomeBadge outcome={prediction.outcome} />
       </div>
 
@@ -81,14 +77,20 @@ export function PredictionCard({ prediction }: PredictionCardProps) {
       <ConfidenceBar value={prediction.confidence} outcome={prediction.outcome} />
 
       {/* Stat rows */}
-      <div className="pt-1 border-t border-border space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-text-muted">Cases retrieved</span>
-          <span className="font-mono text-text-secondary">{prediction.casesRetrieved}</span>
+      <div className="border-t border-border pt-3 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono text-text-muted uppercase tracking-wider">
+            Cases Retrieved
+          </span>
+          <span className="text-[11px] font-mono text-text-secondary font-medium">
+            {prediction.casesRetrieved}
+          </span>
         </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-text-muted">Avg similarity</span>
-          <span className="font-mono text-text-secondary">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono text-text-muted uppercase tracking-wider">
+            Avg Similarity
+          </span>
+          <span className="text-[11px] font-mono text-text-secondary font-medium">
             {(prediction.avgSimilarity * 100).toFixed(0)}%
           </span>
         </div>
