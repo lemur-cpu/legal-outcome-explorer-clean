@@ -1,12 +1,27 @@
+"""Lazy-loaded sentence-transformer embedder."""
+
+from __future__ import annotations
+
 from sentence_transformers import SentenceTransformer
 
+_MODEL_NAME = "all-MiniLM-L6-v2"
+_model: SentenceTransformer | None = None
 
-class Embedder:
-    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5") -> None:
-        pass
 
-    def embed(self, text: str) -> list[float]:
-        pass
+def _get_model() -> SentenceTransformer:
+    global _model
+    if _model is None:
+        _model = SentenceTransformer(_MODEL_NAME)
+    return _model
 
-    def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        pass
+
+def _truncate(text: str, max_tokens: int = 512) -> str:
+    tokens = text.split()
+    return " ".join(tokens[:max_tokens])
+
+
+def encode(text: str) -> list[float]:
+    """Embed a single string. Model is loaded on first call."""
+    model = _get_model()
+    truncated = _truncate(text)
+    return model.encode([truncated])[0].tolist()
