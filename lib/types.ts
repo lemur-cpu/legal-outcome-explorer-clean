@@ -38,7 +38,7 @@ export interface ShapValue {
 // Outcome prediction for the query
 export interface PredictionResult {
   outcome: OutcomeType;
-  confidence: number;       // 0–100
+  confidence: number;       // 0–1
   casesRetrieved: number;
   avgSimilarity: number;    // 0–1
 }

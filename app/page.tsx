@@ -9,7 +9,7 @@ import { AffirmRateChart } from "@/components/dashboard/affirm-rate-chart";
 import { CaseTable } from "@/components/dashboard/case-table";
 import { JudgePanel } from "@/components/dashboard/judge-panel";
 import { StatCard } from "@/components/ui/stat-card";
-import { MOCK_CASES, SUMMARY_STATS } from "@/data/mock";
+import { MOCK_CASES, SUMMARY_STATS, MOCK_PREDICTION, MOCK_SHAP_VALUES } from "@/data/mock";
 import { Scale, TrendingUp, BarChart2, Clock, FileText } from "lucide-react";
 import type { CaseResult, PredictionResult, ShapValue } from "@/lib/types";
 import { QueryBar } from "@/components/search/QueryBar";
@@ -132,20 +132,8 @@ export default function Home() {
       ],
     }));
 
-    setPrediction({
-      outcome: "affirmed",
-      confidence: 82,
-      casesRetrieved: mockResults.length,
-      avgSimilarity: 0.87,
-    });
-    setShapValues([
-      { feature: "Prior circuit precedent", value: 0.31,  direction: "positive" },
-      { feature: "Statute of limitations",  value: 0.22,  direction: "positive" },
-      { feature: "Judge affirmation rate",  value: 0.18,  direction: "positive" },
-      { feature: "Procedural posture",      value: -0.14, direction: "negative" },
-      { feature: "Circuit split present",   value: -0.19, direction: "negative" },
-      { feature: "Novel legal theory",      value: -0.24, direction: "negative" },
-    ]);
+    setPrediction({ ...MOCK_PREDICTION, casesRetrieved: mockResults.length });
+    setShapValues(MOCK_SHAP_VALUES);
     setResults(mockResults);
     setSelectedCase(mockResults[0] ?? null);
     setIsLoading(false);
@@ -172,59 +160,8 @@ export default function Home() {
       >
         {/* ── LEFT: Prediction + SHAP ─────────────────────────────────────── */}
         <aside className="flex flex-col gap-4 p-4 border-r border-border overflow-y-auto">
-          <AnimatePresence mode="wait">
-            {leftKey === "empty" && (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                <div className="rounded-lg bg-surface border border-border p-4">
-                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Prediction</p>
-                  <div className="h-32 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
-                    Submit a query to see prediction
-                  </div>
-                </div>
-                <div className="rounded-lg bg-surface border border-border p-4">
-                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Feature Importance</p>
-                  <div className="h-48 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded">
-                    SHAP values will appear here
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {leftKey === "loading" && (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                <PredictionSkeleton />
-                <ShapSkeleton />
-              </motion.div>
-            )}
-
-            {leftKey === "data" && prediction && (
-              <motion.div
-                key="data"
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-4"
-              >
-                <PredictionCard prediction={prediction} />
-                <FeatureImportanceChart shapValues={shapValues} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <PredictionCard prediction={prediction} isLoading={isLoading} />
+          <FeatureImportanceChart shapValues={shapValues} isLoading={isLoading} />
         </aside>
 
         {/* ── CENTER: QueryBar + Tabs ──────────────────────────────────────── */}

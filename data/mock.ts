@@ -247,3 +247,20 @@ export const SUMMARY_STATS = {
   topCourt: "9th Circuit",
   topPracticeArea: "Criminal",
 };
+
+// Mock query-response data for DEV_MODE
+export const MOCK_PREDICTION = {
+  outcome: "affirmed" as OutcomeType,
+  confidence: 0.74,       // 0–1
+  casesRetrieved: 5,
+  avgSimilarity: 0.847,   // 0–1
+};
+
+export const MOCK_SHAP_VALUES = [
+  { feature: "Circuit (9th)",       value: 0.28,  direction: "positive" as const },
+  { feature: "Prior outcome rate",  value: 0.22,  direction: "positive" as const },
+  { feature: "Legal domain match",  value: 0.19,  direction: "positive" as const },
+  { feature: "Case age (years)",    value: -0.12, direction: "negative" as const },
+  { feature: "Judge reversal rate", value: -0.17, direction: "negative" as const },
+  { feature: "Similarity score",    value: -0.08, direction: "negative" as const },
+];
