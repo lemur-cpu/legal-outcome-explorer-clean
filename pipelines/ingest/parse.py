@@ -17,16 +17,16 @@ def strip_html(text: str) -> str:
     return _TAG_RE.sub(" ", text).strip()
 
 
-def parse_year(date_filed: str | None) -> int | None:
-    if not date_filed or len(date_filed) < 4:
+def parse_year(date_str: str | None) -> int | None:
+    if not date_str or len(date_str) < 4:
         return None
     try:
-        return int(date_filed[:4])
+        return int(date_str[:4])
     except ValueError:
         return None
 
 
-def parse_record(record: dict) -> dict | None:
+def parse_record(record: dict, source_court: str = "") -> dict | None:
     """Extract fields from a raw CourtListener opinion record.
 
     Returns None if the record should be filtered out.
@@ -40,9 +40,10 @@ def parse_record(record: dict) -> dict | None:
     if isinstance(court, dict):
         court_name = court.get("name_abbreviation") or court.get("name_short", "")
     else:
-        court_name = str(record.get("court_id", ""))
+        court_name = str(record.get("court_id", "")) or source_court
 
-    year = parse_year(record.get("date_filed"))
+    # date_filed lives on the cluster in v4; fall back to date_created on the opinion
+    year = parse_year(record.get("date_filed")) or parse_year(record.get("date_created"))
 
     plain = record.get("plain_text", "") or ""
     html = record.get("html_with_citations", "") or ""
@@ -88,8 +89,11 @@ def parse() -> None:
                 logger.error(f"Failed to decode {path}: {exc}")
                 continue
 
+            # Derive court slug from filename (e.g. ca1_page_1.json → ca1)
+            source_court = path.stem.split("_page_")[0] if "_page_" in path.stem else ""
+
             for raw in records:
-                parsed = parse_record(raw)
+                parsed = parse_record(raw, source_court=source_court)
                 if parsed is None:
                     continue
 

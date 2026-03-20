@@ -1,6 +1,7 @@
 """Assign outcome labels to parsed cases using pattern matching."""
 
 import json
+import re
 from pathlib import Path
 
 from loguru import logger
@@ -10,43 +11,53 @@ INPUT_FILE = PROCESSED_DIR / "parsed_cases.jsonl"
 OUTPUT_FILE = PROCESSED_DIR / "labeled_cases.jsonl"
 
 # ---------------------------------------------------------------------------
-# Patterns (checked against first 500 chars, lowercased)
+# Patterns (re.search against first 800 chars, lowercased)
 # ---------------------------------------------------------------------------
 
 AFFIRMED_PATTERNS = [
-    "we affirm",
-    "is affirmed",
-    "hereby affirmed",
-    "judgment of the district court is affirmed",
-    "affirmed in all respects",
+    r'\bwe affirm\b',
+    r'\baffirm the judgment\b',
+    r'\baffirm the district court\b',
+    r'\baffirmed\b',
+    r'\baffirmance\b',
+    r'\bwe therefore affirm\b',
+    r'\baccordingly.*affirm\b',
 ]
 
 REVERSED_PATTERNS = [
-    "we reverse",
-    "is reversed",
-    "hereby reversed",
-    "judgment of the district court is reversed",
-    "reversed and remanded",
+    r'\bwe reverse\b',
+    r'\breverse the judgment\b',
+    r'\breverse the district court\b',
+    r'\breversed\b',
+    r'\bwe therefore reverse\b',
+    r'\breversed and remanded\b',
 ]
 
 REMANDED_PATTERNS = [
-    "remanded",
-    "we remand",
-    "vacated and remanded",
+    r'\bwe remand\b',
+    r'\bremanded\b',
+    r'\bvacate and remand\b',
+    r'\bvacate the judgment and remand\b',
+    r'\bvacated and remanded\b',
+    r'\bvacate\b',
 ]
 
 
 def _count_matches(text: str, patterns: list[str]) -> int:
-    return sum(1 for p in patterns if p in text)
+    return sum(1 for p in patterns if re.search(p, text))
 
 
 def extract_label(full_text: str) -> tuple[str, float]:
     """Return (label, confidence) for a case based on its text.
 
-    Only the first 500 characters (lowercased) are searched.
+    Searches the first 3000 chars plus last 1000 chars, lowercased.
+    Priority: affirmed > reversed > remanded.
+    Gerund non-dispositional forms (e.g. 'affirming her ineligibility')
+    do not match because affirm patterns require 'we', 'judgment', or
+    'district court' as anchors, or the past-tense standalone 'affirmed'.
     """
-    head = full_text[:500].lower()
-    head_short = full_text[:200].lower()
+    head = (full_text[:3000] + " " + full_text[-1000:]).lower()
+    head_short = full_text[:800].lower()
 
     affirmed_hits = _count_matches(head, AFFIRMED_PATTERNS)
     reversed_hits = _count_matches(head, REVERSED_PATTERNS)
