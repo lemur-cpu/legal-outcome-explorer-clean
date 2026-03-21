@@ -52,14 +52,12 @@ def compute_recall_at_k(labeled_path, client, encode_fn, k=5, sample=100) -> flo
         results = client.search(
             collection_name="precedents",
             query_vector=vector,
-            limit=k + 1,
+            limit=k,
             with_payload=True,
         )
-        retrieved_ids = [
-            r.payload["case_id"] for r in results
-            if r.payload["case_id"] != case["case_id"]
-        ]
-        if case["case_id"] in retrieved_ids:
+        query_id = str(case["case_id"])
+        retrieved_ids = [str(r.payload["case_id"]) for r in results]
+        if query_id in retrieved_ids:
             hits += 1
     recall = hits / len(sample_cases)
     print(f"Recall@{k}: {recall:.4f} (over {len(sample_cases)} samples)")
