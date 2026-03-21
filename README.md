@@ -15,8 +15,9 @@ appeal outcome (affirmed / reversed) using a calibrated XGBoost classifier.
 
 ## Evaluation
 
-Trained on 3,633 binary-labeled circuit court opinions (affirmed / reversed).
-SMOTE oversampling applied to training set only to correct 8.5:1 class imbalance.
+Corpus: 1,663 labeled federal appellate opinions (affirmed / reversed).
+Courts: ca1, ca2, ca5, ca9, cadc, cafc.
+Class balance fix: SMOTE oversampling (8.5:1 → balanced training set).
 
 | Model               | F1     | AUC    | ECE    | Threshold |
 |---------------------|--------|--------|--------|-----------|
@@ -25,7 +26,7 @@ SMOTE oversampling applied to training set only to correct 8.5:1 class imbalance
 
 XGBoost deployed. Low threshold (0.098) reflects 8.5:1 class imbalance corrected
 via SMOTE oversampling on training set only. LR excluded from deployment due to
-ECE 0.37 (poorly calibrated).
+ECE 0.37 (poorly calibrated). Latency: ~1800ms p95 end-to-end.
 
 ## Quick Start
 
