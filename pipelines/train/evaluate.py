@@ -3,6 +3,7 @@
 import json
 import numpy as np
 import pickle
+import random
 from pathlib import Path
 
 from loguru import logger
@@ -40,6 +41,29 @@ def evaluate_model(name: str, model, X_test: np.ndarray, y_test: np.ndarray) -> 
         "ece":           compute_ece(y_test, probs),
         "threshold":     round(threshold, 3),
     }
+
+
+def compute_recall_at_k(labeled_path, client, encode_fn, k=5, sample=100) -> float:
+    cases = [json.loads(l) for l in Path(labeled_path).read_text().splitlines()]
+    sample_cases = random.sample(cases, min(sample, len(cases)))
+    hits = 0
+    for case in sample_cases:
+        vector = encode_fn(case["full_text"][:512])
+        results = client.search(
+            collection_name="precedents",
+            query_vector=vector,
+            limit=k + 1,
+            with_payload=True,
+        )
+        retrieved_ids = [
+            r.payload["case_id"] for r in results
+            if r.payload["case_id"] != case["case_id"]
+        ]
+        if case["case_id"] in retrieved_ids:
+            hits += 1
+    recall = hits / len(sample_cases)
+    print(f"Recall@{k}: {recall:.4f} (over {len(sample_cases)} samples)")
+    return recall
 
 
 def main() -> None:

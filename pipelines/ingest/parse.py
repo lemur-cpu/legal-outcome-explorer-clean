@@ -38,7 +38,7 @@ def parse_record(record: dict, source_court: str = "") -> dict | None:
 
     court = record.get("court") or {}
     if isinstance(court, dict):
-        court_name = court.get("name_abbreviation") or court.get("name_short", "")
+        court_name = court.get("name_abbreviation") or court.get("name_short", "") or source_court
     else:
         court_name = str(record.get("court_id", "")) or source_court
 

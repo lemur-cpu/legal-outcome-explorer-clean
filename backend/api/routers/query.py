@@ -32,7 +32,7 @@ async def run_query(req: QueryRequest) -> QueryResponse:
     query_vector = encode(req.query)
     vector_results = vector_search(query_vector, top_k=50)
     bm25_results = bm25_index.search(req.query, top_k=50)
-    fused = reciprocal_rank_fusion(vector_results, bm25_results, top_n=20)
+    fused = reciprocal_rank_fusion(vector_results, bm25_results, top_n=10)
     reranked = reranker.rerank(req.query, fused, top_k=5)
 
     # Prediction
