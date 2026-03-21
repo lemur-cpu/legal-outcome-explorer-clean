@@ -19,6 +19,7 @@
 # misc
 .DS_Store
 *.pem
+CLAUDE.md
 
 # debug
 npm-debug.log*
@@ -35,3 +36,11 @@ backend/.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.venv/
+__pycache__/
+*.pyc
+
+data/
+backend/**/__pycache__/
+pipelines/**/__pycache__/

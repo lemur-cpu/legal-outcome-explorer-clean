@@ -4,28 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { PredictionResult } from "@/lib/types";
 import type { OutcomeType } from "@/data/mock";
 
-// ─── colours ────────────────────────────────────────────────────────────────
-const OUTCOME: Record<string, { text: string; bg: string; border: string }> = {
-  affirmed: {
-    text:   "#34d399",
-    bg:     "rgba(52,211,153,0.12)",
-    border: "rgba(52,211,153,0.3)",
-  },
-  reversed: {
-    text:   "#f87171",
-    bg:     "rgba(248,113,113,0.12)",
-    border: "rgba(248,113,113,0.3)",
-  },
-  remanded: {
-    text:   "#fbbf24",
-    bg:     "rgba(251,191,36,0.12)",
-    border: "rgba(251,191,36,0.3)",
-  },
-  settled: {
-    text:   "#4f8ef7",
-    bg:     "rgba(79,142,247,0.12)",
-    border: "rgba(79,142,247,0.3)",
-  },
+const MONO = "IBM Plex Mono, monospace";
+
+// Muted academic palette — matches CaseViewer badges
+const OUTCOME: Record<string, { text: string; bg: string; border: string; bar: string }> = {
+  affirmed: { text: "#166534", bg: "#dcfce7", border: "#86efac", bar: "#166534" },
+  reversed: { text: "#991b1b", bg: "#fee2e2", border: "#fca5a5", bar: "#991b1b" },
+  remanded: { text: "#92400e", bg: "#fef3c7", border: "#fcd34d", bar: "#92400e" },
+  settled:  { text: "#1a4b8c", bg: "#e8eef7", border: "#93c5fd", bar: "#1a4b8c" },
 };
 
 // ─── OutcomeBadge ────────────────────────────────────────────────────────────
@@ -38,15 +24,15 @@ function OutcomeBadge({ outcome }: { outcome: OutcomeType }) {
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
       className="inline-flex items-center uppercase"
       style={{
-        fontFamily:   "Inter, system-ui, sans-serif",
-        fontSize:     14,
-        fontWeight:   700,
+        fontFamily:    MONO,
+        fontSize:      14,
+        fontWeight:    700,
         letterSpacing: "0.08em",
-        padding:      "6px 12px",
-        borderRadius: 6,
-        color:        c.text,
-        background:   c.bg,
-        border:       `1px solid ${c.border}`,
+        padding:       "6px 12px",
+        borderRadius:  6,
+        color:         c.text,
+        background:    c.bg,
+        border:        `1px solid ${c.border}`,
       }}
     >
       {outcome}
@@ -55,44 +41,34 @@ function OutcomeBadge({ outcome }: { outcome: OutcomeType }) {
 }
 
 // ─── ConfidenceBar ───────────────────────────────────────────────────────────
-function ConfidenceBar({
-  confidence,
-  outcome,
-}: {
-  confidence: number; // 0–1
-  outcome: OutcomeType;
-}) {
-  const outcomeColor = (OUTCOME[outcome] ?? OUTCOME.settled).text;
+function ConfidenceBar({ confidence, outcome }: { confidence: number; outcome: OutcomeType }) {
+  const barColor = (OUTCOME[outcome] ?? OUTCOME.settled).bar;
   const pct = Math.round(confidence * 100);
 
   return (
     <div className="space-y-1.5">
-      {/* Label row */}
       <div className="flex items-center justify-between">
         <span
-          className="text-[12px] uppercase tracking-widest text-text-muted"
-          style={{ fontFamily: "IBM Plex Mono, monospace" }}
+          className="text-[12px] uppercase tracking-widest"
+          style={{ fontFamily: MONO, color: "#a8a29e" }}
         >
           Confidence
         </span>
         <span
           className="text-[12px] font-semibold"
-          style={{ fontFamily: "IBM Plex Mono, monospace", color: outcomeColor }}
+          style={{ fontFamily: MONO, color: barColor }}
         >
           {pct}%
         </span>
       </div>
-      {/* Track */}
+      {/* Track — warm gray */}
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: 6, background: "#2a2d3a" }}
+        style={{ height: 6, background: "#e2ddd6" }}
       >
-        {/* Fill — inline style for dynamic gradient */}
         <motion.div
           className="h-full rounded-full"
-          style={{
-            background: `linear-gradient(90deg, #4f8ef7, ${outcomeColor})`,
-          }}
+          style={{ background: `linear-gradient(90deg, #1a4b8c, ${barColor})` }}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -104,12 +80,7 @@ function ConfidenceBar({
 
 // ─── Shimmer skeleton ────────────────────────────────────────────────────────
 function Skeleton({ w, h }: { w: string; h: number }) {
-  return (
-    <div
-      className="shimmer rounded"
-      style={{ width: w, height: h }}
-    />
-  );
+  return <div className="shimmer rounded" style={{ width: w, height: h }} />;
 }
 
 function PredictionSkeleton() {
@@ -126,7 +97,7 @@ function PredictionSkeleton() {
         </div>
         <Skeleton w="100%" h={6} />
       </div>
-      <div className="border-t border-border pt-3 space-y-2.5">
+      <div className="pt-3 space-y-2.5" style={{ borderTop: "1px solid #e2ddd6" }}>
         <div className="flex justify-between">
           <Skeleton w="50%" h={11} />
           <Skeleton w="12%" h={11} />
@@ -149,12 +120,12 @@ interface PredictionCardProps {
 export function PredictionCard({ prediction, isLoading }: PredictionCardProps) {
   return (
     <div
-      className="rounded-lg border border-border p-4"
-      style={{ background: "#1a1d27" }}
+      className="rounded-lg border p-4"
+      style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
     >
       <p
-        className="text-[10px] uppercase tracking-widest text-text-muted mb-4"
-        style={{ fontFamily: "IBM Plex Mono, monospace" }}
+        className="text-[10px] uppercase tracking-widest mb-4"
+        style={{ fontFamily: MONO, color: "#a8a29e" }}
       >
         Prediction
       </p>
@@ -179,36 +150,27 @@ export function PredictionCard({ prediction, isLoading }: PredictionCardProps) {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="space-y-4"
           >
-            {/* Badge */}
             <div className="flex justify-center py-1">
               <OutcomeBadge outcome={prediction.outcome} />
             </div>
 
-            {/* Confidence bar */}
-            <ConfidenceBar
-              confidence={prediction.confidence}
-              outcome={prediction.outcome}
-            />
+            <ConfidenceBar confidence={prediction.confidence} outcome={prediction.outcome} />
 
-            {/* Stats */}
-            <div className="border-t border-border pt-3 space-y-2.5">
+            <div className="pt-3 space-y-2.5" style={{ borderTop: "1px solid #e2ddd6" }}>
               {[
                 { label: "Cases Retrieved", value: String(prediction.casesRetrieved) },
-                {
-                  label: "Avg Similarity",
-                  value: `${(prediction.avgSimilarity * 100).toFixed(1)}%`,
-                },
+                { label: "Avg Similarity",  value: `${(prediction.avgSimilarity * 100).toFixed(1)}%` },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between">
                   <span
-                    className="text-[11px] uppercase tracking-wider text-text-muted"
-                    style={{ fontFamily: "IBM Plex Mono, monospace" }}
+                    className="text-[11px] uppercase tracking-wider"
+                    style={{ fontFamily: MONO, color: "#a8a29e" }}
                   >
                     {label}
                   </span>
                   <span
-                    className="text-[11px] text-text-primary font-medium"
-                    style={{ fontFamily: "IBM Plex Mono, monospace" }}
+                    className="text-[11px] font-medium"
+                    style={{ fontFamily: MONO, color: "#1c1917" }}
                   >
                     {value}
                   </span>
@@ -222,7 +184,8 @@ export function PredictionCard({ prediction, isLoading }: PredictionCardProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-32 flex items-center justify-center text-text-muted text-sm border border-dashed border-border rounded"
+            className="h-32 flex items-center justify-center text-sm rounded border border-dashed"
+            style={{ color: "#a8a29e", borderColor: "#e2ddd6" }}
           >
             Submit a query to see prediction
           </motion.div>

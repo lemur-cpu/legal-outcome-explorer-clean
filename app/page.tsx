@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Nav } from "@/components/dashboard/nav";
 import { OutcomeTrendChart } from "@/components/dashboard/outcome-trend-chart";
@@ -9,82 +9,45 @@ import { AffirmRateChart } from "@/components/dashboard/affirm-rate-chart";
 import { CaseTable } from "@/components/dashboard/case-table";
 import { JudgePanel } from "@/components/dashboard/judge-panel";
 import { StatCard } from "@/components/ui/stat-card";
-import { MOCK_CASES, SUMMARY_STATS, MOCK_PREDICTION, MOCK_SHAP_VALUES, MOCK_EMBEDDING_POINTS } from "@/data/mock";
+import {
+  MOCK_CASES,
+  SUMMARY_STATS,
+  MOCK_PREDICTION,
+  MOCK_SHAP_VALUES,
+  MOCK_EMBEDDING_POINTS,
+  PRACTICE_AREAS,
+  OUTCOME_TRENDS,
+} from "@/data/mock";
 import { EmbeddingScatter } from "@/components/visualization/EmbeddingScatter";
-import { Scale, TrendingUp, BarChart2, Clock, FileText } from "lucide-react";
-import type { CaseResult, PredictionResult, ShapValue } from "@/lib/types";
+import { Scale, TrendingDown, FileText, GitBranch, TrendingUp } from "lucide-react";
+import type { CaseResult, PredictionResult, ShapValue, RealAnalyticsData } from "@/lib/types";
 import { QueryBar } from "@/components/search/QueryBar";
 import { PredictionCard } from "@/components/prediction/PredictionCard";
 import { FeatureImportanceChart } from "@/components/explainability/FeatureImportanceChart";
 import { ResultsList } from "@/components/results/ResultsList";
 import { CaseViewer } from "@/components/viewer/CaseViewer";
+import { getAnalytics } from "@/lib/api";
 
 type Tab = "results" | "clusters" | "analytics";
+
+const COURT_COLORS = ["#1a4b8c", "#166534", "#92400e", "#991b1b", "#ca8a04", "#4a7c59", "#6b3fa0"];
 
 // ---------------------------------------------------------------------------
 // Skeleton primitives
 // ---------------------------------------------------------------------------
 
 function SkeletonBlock({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <div
-      className={`rounded shimmer ${className ?? ""}`}
-      style={style}
-    />
-  );
-}
-
-function PredictionSkeleton() {
-  return (
-    <div className="rounded-lg bg-surface border border-border p-4 space-y-4">
-      <SkeletonBlock className="h-3 w-24" />
-      <SkeletonBlock className="h-8 w-28 mx-auto" />
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <SkeletonBlock className="h-3 w-20" />
-          <SkeletonBlock className="h-3 w-8" />
-        </div>
-        <SkeletonBlock className="h-1.5 w-full" />
-      </div>
-      <div className="pt-1 border-t border-border space-y-2.5">
-        <div className="flex justify-between">
-          <SkeletonBlock className="h-3 w-28" />
-          <SkeletonBlock className="h-3 w-6" />
-        </div>
-        <div className="flex justify-between">
-          <SkeletonBlock className="h-3 w-24" />
-          <SkeletonBlock className="h-3 w-10" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ShapSkeleton() {
-  return (
-    <div className="rounded-lg bg-surface border border-border p-4 space-y-4">
-      <SkeletonBlock className="h-3 w-36" />
-      {[70, 58, 82, 46, 64, 50].map((w, i) => (
-        <div key={i} className="space-y-1.5">
-          <div className="flex justify-between items-center">
-            <SkeletonBlock className="h-3" style={{ width: `${w}%` }} />
-            <SkeletonBlock className="h-3 w-8" />
-          </div>
-          <SkeletonBlock className="h-1 w-full" />
-        </div>
-      ))}
-    </div>
-  );
+  return <div className={`rounded shimmer ${className ?? ""}`} style={style} />;
 }
 
 function ResultsSkeleton() {
   return (
     <div>
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-3 border-b" style={{ borderColor: "#e2ddd6" }}>
         <SkeletonBlock className="h-3 w-32" />
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="px-4 py-3.5 border-b border-border/50 space-y-2">
+        <div key={i} className="px-4 py-3.5 border-b space-y-2" style={{ borderColor: "#e2ddd6" }}>
           <div className="flex justify-between">
             <SkeletonBlock className="h-3.5 w-2/3" />
             <SkeletonBlock className="h-3.5 w-10" />
@@ -107,12 +70,24 @@ function ResultsSkeleton() {
 // ---------------------------------------------------------------------------
 
 export default function Home() {
-  const [activeTab, setActiveTab]     = useState<Tab>("results");
-  const [isLoading, setIsLoading]     = useState(false);
-  const [prediction, setPrediction]   = useState<PredictionResult | null>(null);
-  const [shapValues, setShapValues]   = useState<ShapValue[]>([]);
-  const [results, setResults]         = useState<CaseResult[]>([]);
+  const [activeTab, setActiveTab]       = useState<Tab>("results");
+  const [isLoading, setIsLoading]       = useState(false);
+  const [prediction, setPrediction]     = useState<PredictionResult | null>(null);
+  const [shapValues, setShapValues]     = useState<ShapValue[]>([]);
+  const [results, setResults]           = useState<CaseResult[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseResult | null>(null);
+  const [analyticsData, setAnalyticsData]     = useState<RealAnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Fetch analytics once when tab opens
+  useEffect(() => {
+    if (activeTab === "analytics" && analyticsData === null && !analyticsLoading) {
+      setAnalyticsLoading(true);
+      getAnalytics()
+        .then((data) => { setAnalyticsData(data); setAnalyticsLoading(false); })
+        .catch(() => setAnalyticsLoading(false));
+    }
+  }, [activeTab]);
 
   async function handleQuery(_query: string) {
     setIsLoading(true);
@@ -140,56 +115,138 @@ export default function Home() {
     setIsLoading(false);
   }
 
+  function handleNavClick(nav: string) {
+    switch (nav) {
+      case "Analytics":  setActiveTab("analytics"); break;
+      case "Precedents": setActiveTab("results");   break;
+      default:           setActiveTab("results");   break;
+    }
+  }
+
+  function getActiveNav(tab: Tab): string {
+    if (tab === "analytics") return "Analytics";
+    return "Explorer";
+  }
+
   const TABS: { id: Tab; label: string }[] = [
     { id: "results",   label: "Results"   },
     { id: "clusters",  label: "Clusters"  },
     { id: "analytics", label: "Analytics" },
   ];
 
-  const hasData    = prediction !== null;
-  const leftKey    = isLoading ? "loading" : hasData       ? "data" : "empty";
   const resultsKey = isLoading ? "loading" : results.length > 0 ? "data" : "empty";
 
+  // Hide left panel on analytics tab
+  const showLeftPanel = activeTab !== "analytics";
+  const gridCols      = showLeftPanel ? "300px 1fr 380px" : "1fr 380px";
+
+  // ── Map real analytics to chart shapes ──
+  // Filter year data: 1990–2024 only (drop incomplete years)
+  const trendData = analyticsData
+    ? analyticsData.by_year
+        .filter((d) => d.year >= 1990 && d.year <= 2024)
+        .map((d) => ({
+          month:    String(d.year),
+          affirmed: d.affirmed,
+          reversed: d.reversed,
+          remanded: d.remanded,
+          settled:  0,
+        }))
+    : OUTCOME_TRENDS;
+
+  const courtChartData = analyticsData
+    ? analyticsData.by_court.map((d, i) => ({
+        area:       d.court.toUpperCase(),
+        count:      d.count,
+        affirmRate: Math.round(d.affirm_rate * 100),
+        avgScore:   Math.round(d.affirm_rate * 100),
+        color:      COURT_COLORS[i % COURT_COLORS.length],
+      }))
+    : PRACTICE_AREAS;
+
+  const radarData = analyticsData
+    ? analyticsData.by_court.map((d) => ({
+        area:       d.court.toUpperCase(),
+        affirmRate: Math.round(d.affirm_rate * 100),
+      }))
+    : undefined;
+
+  const totalCases    = analyticsData?.total_cases ?? SUMMARY_STATS.totalCases;
+  const avgAffirmRate = analyticsData
+    ? Math.round(analyticsData.affirm_rate * 100)
+    : SUMMARY_STATS.avgAffirmRate;
+  const reversalRate  = analyticsData
+    ? Math.round((analyticsData.reversed / analyticsData.total_cases) * 100)
+    : 100 - SUMMARY_STATS.avgAffirmRate;
+  const circuitCount  = analyticsData
+    ? analyticsData.by_court.length
+    : PRACTICE_AREAS.length;
+
+  // Muted academic outcome colors for distribution bars
+  const outcomeDist = analyticsData
+    ? [
+        { label: "Affirmed", value: Math.round((analyticsData.affirmed / analyticsData.total_cases) * 100), count: analyticsData.affirmed.toLocaleString(), color: "#166534" },
+        { label: "Reversed", value: Math.round((analyticsData.reversed / analyticsData.total_cases) * 100), count: analyticsData.reversed.toLocaleString(), color: "#991b1b" },
+        { label: "Remanded", value: Math.round((analyticsData.remanded / analyticsData.total_cases) * 100), count: analyticsData.remanded.toLocaleString(), color: "#92400e" },
+      ]
+    : [
+        { label: "Affirmed", value: 64, count: "1,851", color: "#166534" },
+        { label: "Reversed", value: 21, count: "607",   color: "#991b1b" },
+        { label: "Remanded", value: 11, count: "318",   color: "#92400e" },
+      ];
+
   return (
-    <div className="h-screen flex flex-col bg-background text-text-primary overflow-hidden">
-      <Nav />
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "#f8f6f1" }}>
+      <Nav activeNav={getActiveNav(activeTab)} onNavClick={handleNavClick} />
 
-      {/* 3-column grid */}
-      <div
-        className="flex-1 grid min-h-0"
-        style={{ gridTemplateColumns: "300px 1fr 380px" }}
-      >
-        {/* ── LEFT: Prediction + SHAP ─────────────────────────────────────── */}
-        <aside className="flex flex-col gap-4 p-4 border-r border-border overflow-y-auto">
-          <PredictionCard prediction={prediction} isLoading={isLoading} />
-          <FeatureImportanceChart shapValues={shapValues} isLoading={isLoading} />
-        </aside>
+      <div className="flex-1 grid min-h-0" style={{ gridTemplateColumns: gridCols }}>
 
-        {/* ── CENTER: QueryBar + Tabs ──────────────────────────────────────── */}
+        {/* ── LEFT: Prediction + SHAP ──────────────────────────────────── */}
+        {showLeftPanel && (
+          <aside
+            className="flex flex-col gap-4 p-4 overflow-y-auto border-r"
+            style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
+          >
+            <PredictionCard prediction={prediction} isLoading={isLoading} />
+            <FeatureImportanceChart shapValues={shapValues} isLoading={isLoading} />
+          </aside>
+        )}
+
+        {/* ── CENTER: QueryBar + Tabs ───────────────────────────────────── */}
         <main className="flex flex-col min-h-0">
-          <div className="shrink-0 px-6 py-4 border-b border-border bg-background/80 backdrop-blur-md">
+          <div
+            className="shrink-0 px-6 py-4 border-b backdrop-blur-md"
+            style={{ background: "rgba(248,246,241,0.9)", borderColor: "#e2ddd6" }}
+          >
             <QueryBar onSubmit={handleQuery} isLoading={isLoading} />
           </div>
 
-          <div className="shrink-0 flex gap-1 px-6 pt-4 pb-0">
+          {/* Tab bar */}
+          <div
+            className="shrink-0 flex gap-1 px-6 pt-3 pb-0 border-b"
+            style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
+          >
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`
-                  px-4 py-1.5 text-sm font-medium rounded-t transition-colors
-                  ${activeTab === tab.id
-                    ? "bg-surface border border-b-0 border-border text-text-primary"
-                    : "text-text-muted hover:text-text-secondary"
-                  }
-                `}
+                className="px-4 py-2 text-sm font-medium transition-colors relative"
+                style={{ color: activeTab === tab.id ? "#1a4b8c" : "#a8a29e" }}
               >
                 {tab.label}
+                {activeTab === tab.id && (
+                  <span
+                    className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t"
+                    style={{ background: "#1a4b8c" }}
+                  />
+                )}
               </button>
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto border-t border-border bg-surface rounded-tr-lg">
+          <div className="flex-1 overflow-y-auto" style={{ background: "#f8f6f1" }}>
+
+            {/* ── Results ── */}
             {activeTab === "results" && (
               <AnimatePresence mode="wait">
                 {resultsKey === "empty" && (
@@ -199,12 +256,12 @@ export default function Home() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center justify-center h-full text-text-muted text-sm"
+                    className="flex items-center justify-center h-full text-sm"
+                    style={{ color: "#a8a29e" }}
                   >
                     Submit a query to see results
                   </motion.div>
                 )}
-
                 {resultsKey === "loading" && (
                   <motion.div
                     key="loading"
@@ -212,11 +269,11 @@ export default function Home() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.2 }}
+                    style={{ background: "#ffffff" }}
                   >
                     <ResultsSkeleton />
                   </motion.div>
                 )}
-
                 {resultsKey === "data" && (
                   <motion.div
                     key="data"
@@ -225,30 +282,25 @@ export default function Home() {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}
                     className="h-full"
+                    style={{ background: "#ffffff" }}
                   >
-                    <ResultsList
-                      results={results}
-                      selectedId={selectedCase?.id ?? null}
-                      onSelect={setSelectedCase}
-                    />
+                    <ResultsList results={results} selectedId={selectedCase?.id ?? null} onSelect={setSelectedCase} />
                   </motion.div>
                 )}
               </AnimatePresence>
             )}
 
+            {/* ── Clusters ── */}
             {activeTab === "clusters" && (
               <div className="p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p
-                    className="text-text-muted uppercase"
-                    style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.12em" }}
+                    className="uppercase"
+                    style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.12em", color: "#a8a29e" }}
                   >
                     Embedding Space · {MOCK_EMBEDDING_POINTS.length} cases
                   </p>
-                  <p
-                    className="text-text-muted"
-                    style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10 }}
-                  >
+                  <p style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: "#a8a29e" }}>
                     Hover a point to inspect
                   </p>
                 </div>
@@ -256,84 +308,142 @@ export default function Home() {
                   points={MOCK_EMBEDDING_POINTS}
                   queryPoint={{ x: 0.3, y: -0.8, title: "Your Query" }}
                   selectedId={selectedCase?.id}
-                  retrievedIds={results.map(r => `e${r.id}`)}
+                  retrievedIds={results.map((r) => `e${r.id}`)}
                 />
               </div>
             )}
 
+            {/* ── Analytics ── */}
             {activeTab === "analytics" && (
               <div className="p-6 space-y-6">
-                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                  <StatCard label="Total Cases"       value={SUMMARY_STATS.totalCases.toLocaleString()} icon={FileText}  accent="blue"   delay={0}    />
-                  <StatCard label="Avg Affirm Rate"   value={`${SUMMARY_STATS.avgAffirmRate}%`}          icon={TrendingUp} accent="green"  delay={0.05} />
-                  <StatCard label="This Month"        value={SUMMARY_STATS.casesThisMonth}               icon={BarChart2}  accent="yellow" delay={0.1}  delta={SUMMARY_STATS.casesThisMonthDelta} deltaLabel="vs last month" />
-                  <StatCard label="Avg Decision Days" value={SUMMARY_STATS.avgDecisionDays}              icon={Clock}      accent="blue"   delay={0.15} />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2"><OutcomeTrendChart /></div>
-                  <AffirmRateChart />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <PracticeAreaChart />
-                  <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                    className="lg:col-span-2 rounded-lg bg-surface border border-border shadow-card p-5"
+                {analyticsLoading ? (
+                  <div
+                    className="flex items-center justify-center h-48 text-sm"
+                    style={{ color: "#a8a29e" }}
                   >
-                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">Outcome Distribution</p>
-                    <div className="space-y-3">
-                      {[
-                        { label: "Affirmed", value: 64, color: "#34d399" },
-                        { label: "Reversed", value: 21, color: "#f87171" },
-                        { label: "Remanded", value: 11, color: "#fbbf24" },
-                        { label: "Settled",  value: 4,  color: "#4f8ef7" },
-                      ].map((item, i) => (
-                        <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.06 }}>
-                          <div className="flex items-center justify-between text-sm mb-1.5">
-                            <span className="text-text-secondary">{item.label}</span>
-                            <span className="font-mono font-medium" style={{ color: item.color }}>{item.value}%</span>
-                          </div>
-                          <div className="h-2 bg-surface-elevated rounded-full overflow-hidden">
-                            <motion.div className="h-full rounded-full" style={{ backgroundColor: item.color }} initial={{ width: 0 }} animate={{ width: `${item.value}%` }} transition={{ duration: 0.9, ease: "easeOut", delay: 0.5 + i * 0.08 }} />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                    <div className="mt-5 pt-4 border-t border-border grid grid-cols-4 gap-2">
-                      {[
-                        { label: "Affirmed", count: "1,851", color: "#34d399" },
-                        { label: "Reversed", count: "607",   color: "#f87171" },
-                        { label: "Remanded", count: "318",   color: "#fbbf24" },
-                        { label: "Settled",  count: "116",   color: "#4f8ef7" },
-                      ].map((item) => (
-                        <div key={item.label} className="text-center">
-                          <p className="font-mono text-lg font-semibold" style={{ color: item.color }}>{item.count}</p>
-                          <p className="text-[10px] text-text-muted mt-0.5">{item.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </div>
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                  <div className="xl:col-span-2"><CaseTable /></div>
-                  <JudgePanel />
-                </div>
-                <motion.footer initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="flex items-center justify-between py-4 border-t border-border text-xs text-text-muted">
-                  <div className="flex items-center gap-1.5">
-                    <Scale size={12} />
-                    <span>PrecedentIQ — Legal Analytics Platform</span>
+                    Loading analytics…
                   </div>
-                  <span className="font-mono">v0.1.0-beta</span>
-                </motion.footer>
+                ) : (
+                  <>
+                    {/* Stat cards — 4 real metrics */}
+                    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                      <StatCard label="Total Cases"     value={totalCases.toLocaleString()} icon={FileText}    accent="blue"  delay={0}    />
+                      <StatCard label="Avg Affirm Rate" value={`${avgAffirmRate}%`}          icon={TrendingUp}  accent="green" delay={0.05} />
+                      <StatCard label="Reversal Rate"   value={`${reversalRate}%`}            icon={TrendingDown} accent="red"  delay={0.1}  />
+                      <StatCard label="Circuits Covered" value={String(circuitCount)}         icon={GitBranch}   accent="blue"  delay={0.15} />
+                    </div>
+
+                    {/* Trend + Affirm Rate */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="lg:col-span-2">
+                        <OutcomeTrendChart
+                          data={trendData}
+                          title={analyticsData ? "Outcome Trends by Year" : "Outcome Trends — 12 Month"}
+                          subtitle={analyticsData ? "Federal Circuit Courts of Appeals" : undefined}
+                        />
+                      </div>
+                      <AffirmRateChart data={radarData} />
+                    </div>
+
+                    {/* Courts + Outcome Distribution */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <PracticeAreaChart
+                        data={courtChartData}
+                        title={analyticsData ? "Cases by Court" : "Cases by Practice Area"}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="lg:col-span-2 rounded-lg border p-5"
+                        style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
+                      >
+                        <p
+                          className="text-xs font-semibold uppercase tracking-wider mb-4"
+                          style={{ color: "#57534e" }}
+                        >
+                          Outcome Distribution
+                        </p>
+                        <div className="space-y-3">
+                          {outcomeDist.map((item, i) => (
+                            <motion.div
+                              key={item.label}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: 0.4 + i * 0.06 }}
+                            >
+                              <div className="flex items-center justify-between text-sm mb-1.5">
+                                <span style={{ color: "#57534e" }}>{item.label}</span>
+                                <span className="font-mono font-medium" style={{ color: item.color }}>
+                                  {item.value}%
+                                </span>
+                              </div>
+                              <div className="h-2 rounded-full overflow-hidden" style={{ background: "#e2ddd6" }}>
+                                <motion.div
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: item.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${item.value}%` }}
+                                  transition={{ duration: 0.9, ease: "easeOut", delay: 0.5 + i * 0.08 }}
+                                />
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                        <div
+                          className="mt-5 pt-4 border-t grid gap-2"
+                          style={{
+                            borderColor: "#e2ddd6",
+                            gridTemplateColumns: `repeat(${outcomeDist.length}, 1fr)`,
+                          }}
+                        >
+                          {outcomeDist.map((item) => (
+                            <div key={item.label} className="text-center">
+                              <p className="font-mono text-lg font-semibold" style={{ color: item.color }}>
+                                {item.count}
+                              </p>
+                              <p className="text-[10px] mt-0.5" style={{ color: "#a8a29e" }}>
+                                {item.label}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Case Table + Judge Panel */}
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                      <div className="xl:col-span-2"><CaseTable /></div>
+                      <JudgePanel />
+                    </div>
+
+                    <motion.footer
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8 }}
+                      className="flex items-center justify-between py-4 border-t text-xs"
+                      style={{ borderColor: "#e2ddd6", color: "#a8a29e" }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Scale size={12} />
+                        <span>PrecedentIQ — Legal Analytics Platform</span>
+                      </div>
+                      <span className="font-mono">v0.1.0-beta</span>
+                    </motion.footer>
+                  </>
+                )}
               </div>
             )}
           </div>
         </main>
 
-        {/* ── RIGHT: Case Viewer ───────────────────────────────────────────── */}
-        <aside className="flex flex-col border-l border-border overflow-hidden">
-          <CaseViewer selectedCase={selectedCase} isLoading={isLoading} />
+        {/* ── RIGHT: Case Viewer ──────────────────────────────────────────── */}
+        <aside className="flex flex-col overflow-hidden border-l" style={{ borderColor: "#e2ddd6" }}>
+          <CaseViewer
+            selectedCase={selectedCase}
+            isLoading={isLoading}
+            predictionConfidence={prediction ? Math.round(prediction.confidence * 100) : undefined}
+          />
         </aside>
       </div>
     </div>

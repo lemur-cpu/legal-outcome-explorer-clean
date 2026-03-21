@@ -59,6 +59,32 @@ export interface AnalyticsData {
   summaryStats: typeof import("@/data/mock").SUMMARY_STATS;
 }
 
+// Real analytics response from /api/analytics/outcomes
+export interface CourtData {
+  court: string;
+  count: number;
+  affirmed: number;
+  reversed: number;
+  affirm_rate: number;
+}
+
+export interface YearData {
+  year: number;
+  affirmed: number;
+  reversed: number;
+  remanded: number;
+}
+
+export interface RealAnalyticsData {
+  total_cases: number;
+  affirmed: number;
+  reversed: number;
+  remanded: number;
+  affirm_rate: number;
+  by_court: CourtData[];
+  by_year: YearData[];
+}
+
 // A point in the 2-D embedding space (for the Clusters tab)
 export interface EmbeddingPoint {
   id: string;

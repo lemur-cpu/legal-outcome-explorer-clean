@@ -8,41 +8,54 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
   Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Cell,
 } from "recharts";
 import { motion } from "framer-motion";
 import { PRACTICE_AREAS } from "@/data/mock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-const radarData = PRACTICE_AREAS.map((a) => ({
-  area: a.area,
-  affirmRate: a.affirmRate,
-  avgScore: a.avgScore,
-}));
+const GRID = "#e2ddd6";
+const TICK = "#a8a29e";
+
+interface RadarEntry { area: string; affirmRate: number; avgScore?: number }
 
 interface TooltipPayloadItem { value: number; payload: { area: string } }
 interface TooltipProps { active?: boolean; payload?: TooltipPayloadItem[] }
 function CustomTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-surface-elevated border border-border rounded-lg p-3 shadow-card text-xs">
-      <p className="font-semibold text-text-primary mb-1">{payload[0]?.payload?.area}</p>
-      <div className="space-y-1">
-        <div className="flex justify-between gap-3">
-          <span className="text-text-secondary">Affirm Rate</span>
-          <span className="font-mono text-affirmed">{payload[0]?.value}%</span>
-        </div>
-        {payload[1] && (
-          <div className="flex justify-between gap-3">
-            <span className="text-text-secondary">Avg Score</span>
-            <span className="font-mono text-accent">{payload[1]?.value}</span>
-          </div>
-        )}
+    <div
+      className="rounded-lg p-3 text-xs border"
+      style={{ background: "#ffffff", borderColor: "#e2ddd6", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+    >
+      <p className="font-semibold mb-1" style={{ color: "#1c1917" }}>{payload[0]?.payload?.area}</p>
+      <div className="flex justify-between gap-3">
+        <span style={{ color: "#57534e" }}>Affirm Rate</span>
+        <span className="font-mono" style={{ color: "#166534" }}>{payload[0]?.value}%</span>
       </div>
     </div>
   );
 }
 
-export function AffirmRateChart() {
+interface AffirmRateChartProps {
+  data?: RadarEntry[];
+}
+
+export function AffirmRateChart({ data }: AffirmRateChartProps) {
+  const radarData = data ?? PRACTICE_AREAS.map((a) => ({
+    area: a.area,
+    affirmRate: a.affirmRate,
+    avgScore: a.avgScore,
+  }));
+
+  // Fewer than 5 points → radar looks broken; use horizontal bar instead
+  const useBar = radarData.length < 5;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -51,41 +64,60 @@ export function AffirmRateChart() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Affirm Rate by Area</CardTitle>
+          <CardTitle>Affirm Rate by {data ? "Court" : "Area"}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={260}>
-            <RadarChart data={radarData} margin={{ top: 8, right: 24, left: 24, bottom: 8 }}>
-              <PolarGrid stroke="#2a2d3e" />
-              <PolarAngleAxis
-                dataKey="area"
-                tick={{ fill: "#8b90a8", fontSize: 10 }}
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 100]}
-                tick={{ fill: "#565a72", fontSize: 9 }}
-                tickCount={4}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Radar
-                name="Affirm Rate"
-                dataKey="affirmRate"
-                stroke="#34d399"
-                fill="#34d399"
-                fillOpacity={0.15}
-                strokeWidth={2}
-              />
-              <Radar
-                name="Avg Score"
-                dataKey="avgScore"
-                stroke="#4f8ef7"
-                fill="#4f8ef7"
-                fillOpacity={0.1}
-                strokeWidth={1.5}
-                strokeDasharray="4 2"
-              />
-            </RadarChart>
+            {useBar ? (
+              <BarChart
+                data={radarData}
+                layout="vertical"
+                margin={{ top: 0, right: 32, left: 8, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fill: TICK, fontSize: 11 }}
+                  axisLine={{ stroke: GRID }}
+                  tickLine={false}
+                  tickFormatter={(v) => `${v}%`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="area"
+                  width={60}
+                  tick={{ fill: TICK, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(26,75,140,0.04)" }} />
+                <Bar dataKey="affirmRate" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                  {radarData.map((entry, i) => (
+                    <Cell
+                      key={entry.area}
+                      fill={entry.affirmRate >= 70 ? "#166534" : entry.affirmRate >= 50 ? "#1a4b8c" : "#991b1b"}
+                      fillOpacity={0.8}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            ) : (
+              <RadarChart data={radarData} margin={{ top: 8, right: 24, left: 24, bottom: 8 }}>
+                <PolarGrid stroke={GRID} />
+                <PolarAngleAxis dataKey="area" tick={{ fill: TICK, fontSize: 10 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: TICK, fontSize: 9 }} tickCount={4} />
+                <Tooltip content={<CustomTooltip />} />
+                <Radar
+                  name="Affirm Rate"
+                  dataKey="affirmRate"
+                  stroke="#166534"
+                  fill="#166534"
+                  fillOpacity={0.12}
+                  strokeWidth={2}
+                />
+              </RadarChart>
+            )}
           </ResponsiveContainer>
         </CardContent>
       </Card>

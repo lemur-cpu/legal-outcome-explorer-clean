@@ -10,7 +10,7 @@ interface QueryBarProps {
 }
 
 export function QueryBar({ onSubmit, isLoading }: QueryBarProps) {
-  const [value, setValue] = useState("");
+  const [value,   setValue]   = useState("");
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -29,11 +29,12 @@ export function QueryBar({ onSubmit, isLoading }: QueryBarProps) {
       <motion.div
         animate={{
           boxShadow: focused
-            ? "0 0 0 2px rgba(79,142,247,0.4), 0 0 20px rgba(79,142,247,0.15)"
-            : "0 0 0 1px rgba(42,45,62,1)",
+            ? "0 0 0 2px rgba(26,75,140,0.25), 0 2px 8px rgba(26,75,140,0.10)"
+            : "0 0 0 1px #e2ddd6",
         }}
         transition={{ duration: 0.2 }}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg"
+        style={{ background: "#ffffff" }}
       >
         <input
           ref={inputRef}
@@ -45,7 +46,8 @@ export function QueryBar({ onSubmit, isLoading }: QueryBarProps) {
           onBlur={() => setFocused(false)}
           placeholder="Describe your legal scenario or paste a case citation…"
           disabled={isLoading}
-          className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none disabled:opacity-50"
+          className="flex-1 bg-transparent text-sm outline-none disabled:opacity-50"
+          style={{ color: "#1c1917" }}
         />
 
         <motion.button
@@ -53,7 +55,8 @@ export function QueryBar({ onSubmit, isLoading }: QueryBarProps) {
           disabled={!value.trim() || isLoading}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center justify-center w-7 h-7 rounded bg-accent text-white disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          className="flex items-center justify-center w-7 h-7 rounded text-white disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          style={{ background: "#1a4b8c" }}
         >
           {isLoading ? (
             <Loader2 size={14} className="animate-spin" />

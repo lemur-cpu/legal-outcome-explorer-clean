@@ -1,4 +1,4 @@
-import type { QueryResponse, AnalyticsData, EmbeddingPoint } from "@/lib/types";
+import type { QueryResponse, RealAnalyticsData, EmbeddingPoint } from "@/lib/types";
 import {
   MOCK_CASES,
   OUTCOME_TRENDS,
@@ -51,13 +51,45 @@ function mockQueryResponse(query: string): QueryResponse {
   };
 }
 
-function mockAnalytics(): AnalyticsData {
+function mockRealAnalytics(): RealAnalyticsData {
+  const byCourt: Record<string, { affirmed: number; reversed: number; remanded: number; total: number }> = {};
+  const byYear: Record<number, { affirmed: number; reversed: number; remanded: number }> = {};
+
+  for (const c of MOCK_CASES) {
+    const court = c.court;
+    const year = parseInt(c.date.slice(0, 4));
+    if (!byCourt[court]) byCourt[court] = { affirmed: 0, reversed: 0, remanded: 0, total: 0 };
+    byCourt[court].total++;
+    if (c.outcome === "affirmed") byCourt[court].affirmed++;
+    if (c.outcome === "reversed") byCourt[court].reversed++;
+    if (c.outcome === "remanded") byCourt[court].remanded++;
+    if (!byYear[year]) byYear[year] = { affirmed: 0, reversed: 0, remanded: 0 };
+    if (c.outcome === "affirmed") byYear[year].affirmed++;
+    if (c.outcome === "reversed") byYear[year].reversed++;
+    if (c.outcome === "remanded") byYear[year].remanded++;
+  }
+
+  const affirmedCount = MOCK_CASES.filter((c) => c.outcome === "affirmed").length;
+  const total = MOCK_CASES.length;
+
   return {
-    cases: MOCK_CASES,
-    outcomeTrends: OUTCOME_TRENDS,
-    practiceAreas: PRACTICE_AREAS,
-    judgeStats: JUDGE_STATS,
-    summaryStats: SUMMARY_STATS,
+    total_cases: total,
+    affirmed: affirmedCount,
+    reversed: MOCK_CASES.filter((c) => c.outcome === "reversed").length,
+    remanded: MOCK_CASES.filter((c) => c.outcome === "remanded").length,
+    affirm_rate: total > 0 ? affirmedCount / total : 0,
+    by_court: Object.entries(byCourt)
+      .map(([court, d]) => ({
+        court,
+        count: d.total,
+        affirmed: d.affirmed,
+        reversed: d.reversed,
+        affirm_rate: d.total > 0 ? d.affirmed / d.total : 0,
+      }))
+      .sort((a, b) => b.count - a.count),
+    by_year: Object.entries(byYear)
+      .map(([year, d]) => ({ year: parseInt(year), ...d }))
+      .sort((a, b) => a.year - b.year),
   };
 }
 
@@ -91,12 +123,12 @@ export async function submitQuery(query: string): Promise<QueryResponse> {
   return res.json();
 }
 
-export async function getAnalytics(): Promise<AnalyticsData> {
+export async function getAnalytics(): Promise<RealAnalyticsData> {
   if (DEV_MODE) {
     await delay(1800);
-    return mockAnalytics();
+    return mockRealAnalytics();
   }
-  const res = await fetch(`${API_BASE}/analytics`);
+  const res = await fetch(`${API_BASE}/api/analytics/outcomes`);
   if (!res.ok) throw new Error(`getAnalytics failed: ${res.status}`);
   return res.json();
 }

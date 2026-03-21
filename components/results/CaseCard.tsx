@@ -6,11 +6,26 @@ import type { CaseResult } from "@/lib/types";
 const MONO  = "IBM Plex Mono, monospace";
 const SERIF = "IBM Plex Serif, Georgia, serif";
 
+// Muted academic outcome colors
 const OUTCOME_COLOR: Record<string, string> = {
-  affirmed: "#34d399",
-  reversed: "#f87171",
-  remanded: "#fbbf24",
-  settled:  "#4f8ef7",
+  affirmed: "#166534",
+  reversed: "#991b1b",
+  remanded: "#92400e",
+  settled:  "#1a4b8c",
+};
+
+const OUTCOME_BG: Record<string, string> = {
+  affirmed: "#dcfce7",
+  reversed: "#fee2e2",
+  remanded: "#fef3c7",
+  settled:  "#e8eef7",
+};
+
+const OUTCOME_BORDER: Record<string, string> = {
+  affirmed: "#86efac",
+  reversed: "#fca5a5",
+  remanded: "#fcd34d",
+  settled:  "#93c5fd",
 };
 
 interface CaseCardProps {
@@ -21,9 +36,11 @@ interface CaseCardProps {
 }
 
 export function CaseCard({ case: c, isSelected, onClick, index }: CaseCardProps) {
-  const accentColor = OUTCOME_COLOR[c.outcome] ?? "#4f8ef7";
-  const year        = c.date.slice(0, 4);
-  const simPct      = Math.round(c.similarity * 100);
+  const accentColor  = OUTCOME_COLOR[c.outcome] ?? OUTCOME_COLOR.settled;
+  const badgeBg      = OUTCOME_BG[c.outcome]    ?? OUTCOME_BG.settled;
+  const badgeBorder  = OUTCOME_BORDER[c.outcome] ?? OUTCOME_BORDER.settled;
+  const year         = c.date.slice(0, 4);
+  const simPct       = Math.round(c.similarity * 100);
 
   return (
     <motion.div
@@ -33,20 +50,23 @@ export function CaseCard({ case: c, isSelected, onClick, index }: CaseCardProps)
       onClick={onClick}
       className="relative rounded-lg border p-4 mb-2 mx-3 cursor-pointer transition-all duration-200"
       style={{
-        background:   "#1a1d27",
-        borderColor:  isSelected ? "#4f8ef7" : "#2a2d3a",
-        backgroundColor: isSelected ? "rgba(79,142,247,0.06)" : "#1a1d27",
+        background:   isSelected ? "#f0ede6" : "#ffffff",
+        borderColor:  isSelected ? "#1a4b8c" : "#e2ddd6",
       }}
       onMouseEnter={(e) => {
-        if (!isSelected)
-          (e.currentTarget as HTMLDivElement).style.borderColor = "#4f8ef7";
+        if (!isSelected) {
+          (e.currentTarget as HTMLDivElement).style.background    = "#f0ede6";
+          (e.currentTarget as HTMLDivElement).style.borderColor   = "#1a4b8c";
+        }
       }}
       onMouseLeave={(e) => {
-        if (!isSelected)
-          (e.currentTarget as HTMLDivElement).style.borderColor = "#2a2d3a";
+        if (!isSelected) {
+          (e.currentTarget as HTMLDivElement).style.background    = "#ffffff";
+          (e.currentTarget as HTMLDivElement).style.borderColor   = "#e2ddd6";
+        }
       }}
     >
-      {/* Left accent bar — 3px */}
+      {/* Left accent bar */}
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg"
         style={{ backgroundColor: accentColor }}
@@ -54,12 +74,15 @@ export function CaseCard({ case: c, isSelected, onClick, index }: CaseCardProps)
 
       {/* Row 1: title + similarity */}
       <div className="flex items-start justify-between gap-2 mb-2 pl-1">
-        <p className="text-[13px] font-semibold text-text-primary leading-snug line-clamp-1 flex-1">
+        <p
+          className="text-[13px] font-semibold leading-snug line-clamp-1 flex-1"
+          style={{ color: "#1c1917" }}
+        >
           {c.title}
         </p>
         <span
           className="shrink-0 font-semibold"
-          style={{ fontFamily: MONO, fontSize: 12, color: "#4f8ef7" }}
+          style={{ fontFamily: MONO, fontSize: 12, color: "#1a4b8c" }}
         >
           {simPct}%
         </span>
@@ -70,38 +93,34 @@ export function CaseCard({ case: c, isSelected, onClick, index }: CaseCardProps)
         {[c.court, year, c.practiceArea].map((label) => (
           <span
             key={label}
-            className="px-2 py-0.5 rounded border text-text-muted"
-            style={{
-              fontFamily:  MONO,
-              fontSize:    10,
-              borderColor: "#2a2d3a",
-            }}
+            className="px-2 py-0.5 rounded border"
+            style={{ fontFamily: MONO, fontSize: 10, borderColor: "#e2ddd6", color: "#a8a29e" }}
           >
             {label}
           </span>
         ))}
       </div>
 
-      {/* Row 3: snippet — IBM Plex Serif italic 12px */}
+      {/* Row 3: snippet — IBM Plex Serif italic */}
       <p
-        className="line-clamp-2 text-text-muted mb-2 pl-1"
-        style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, lineHeight: 1.6 }}
+        className="line-clamp-2 mb-2 pl-1"
+        style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, lineHeight: 1.6, color: "#57534e" }}
       >
         {c.summary}
       </p>
 
-      {/* Row 4: outcome chip (11px variant) */}
+      {/* Row 4: outcome chip */}
       <div className="pl-1">
         <span
           className="inline-flex items-center px-1.5 py-0.5 rounded uppercase"
           style={{
-            fontFamily:   MONO,
-            fontSize:     11,
-            fontWeight:   600,
+            fontFamily:    MONO,
+            fontSize:      11,
+            fontWeight:    600,
             letterSpacing: "0.06em",
-            color:        accentColor,
-            background:   `${accentColor}1a`,
-            border:       `1px solid ${accentColor}40`,
+            color:         accentColor,
+            background:    badgeBg,
+            border:        `1px solid ${badgeBorder}`,
           }}
         >
           {c.outcome}
