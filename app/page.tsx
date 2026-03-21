@@ -9,15 +9,6 @@ import { AffirmRateChart } from "@/components/dashboard/affirm-rate-chart";
 import { CaseTable } from "@/components/dashboard/case-table";
 import { JudgePanel } from "@/components/dashboard/judge-panel";
 import { StatCard } from "@/components/ui/stat-card";
-import {
-  MOCK_CASES,
-  SUMMARY_STATS,
-  MOCK_PREDICTION,
-  MOCK_SHAP_VALUES,
-  MOCK_EMBEDDING_POINTS,
-  PRACTICE_AREAS,
-  OUTCOME_TRENDS,
-} from "@/data/mock";
 import { EmbeddingScatter } from "@/components/visualization/EmbeddingScatter";
 import { Scale, TrendingDown, FileText, GitBranch, TrendingUp } from "lucide-react";
 import type { CaseResult, PredictionResult, ShapValue, RealAnalyticsData } from "@/lib/types";
@@ -26,7 +17,7 @@ import { PredictionCard } from "@/components/prediction/PredictionCard";
 import { FeatureImportanceChart } from "@/components/explainability/FeatureImportanceChart";
 import { ResultsList } from "@/components/results/ResultsList";
 import { CaseViewer } from "@/components/viewer/CaseViewer";
-import { getAnalytics } from "@/lib/api";
+import { getAnalytics, submitQuery } from "@/lib/api";
 
 type Tab = "results" | "clusters" | "analytics";
 
@@ -70,56 +61,67 @@ function ResultsSkeleton() {
 // ---------------------------------------------------------------------------
 
 export default function Home() {
-  const [activeTab, setActiveTab]       = useState<Tab>("results");
-  const [isLoading, setIsLoading]       = useState(false);
-  const [prediction, setPrediction]     = useState<PredictionResult | null>(null);
-  const [shapValues, setShapValues]     = useState<ShapValue[]>([]);
-  const [results, setResults]           = useState<CaseResult[]>([]);
-  const [selectedCase, setSelectedCase] = useState<CaseResult | null>(null);
-  const [analyticsData, setAnalyticsData]     = useState<RealAnalyticsData | null>(null);
+  const [activeTab, setActiveTab]           = useState<Tab>("results");
+  const [isLoading, setIsLoading]           = useState(false);
+  const [queryError, setQueryError]         = useState<string | null>(null);
+  const [prediction, setPrediction]         = useState<PredictionResult | null>(null);
+  const [shapValues, setShapValues]         = useState<ShapValue[]>([]);
+  const [results, setResults]               = useState<CaseResult[]>([]);
+  const [selectedCase, setSelectedCase]     = useState<CaseResult | null>(null);
+  const [analyticsData, setAnalyticsData]   = useState<RealAnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState(false);
+  // Track whether user navigated via Precedents nav
+  const [precedentsMode, setPrecedentsMode] = useState(false);
 
   // Fetch analytics once when tab opens
   useEffect(() => {
     if (activeTab === "analytics" && analyticsData === null && !analyticsLoading) {
       setAnalyticsLoading(true);
+      setAnalyticsError(false);
       getAnalytics()
         .then((data) => { setAnalyticsData(data); setAnalyticsLoading(false); })
-        .catch(() => setAnalyticsLoading(false));
+        .catch(() => { setAnalyticsLoading(false); setAnalyticsError(true); });
     }
   }, [activeTab]);
 
-  async function handleQuery(_query: string) {
+  async function handleQuery(query: string) {
     setIsLoading(true);
+    setQueryError(null);
+    setPrecedentsMode(false);
     setActiveTab("results");
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 1800));
-
-    const mockResults: CaseResult[] = MOCK_CASES.slice(0, 5).map((c, i) => ({
-      ...c,
-      similarity: parseFloat((0.97 - i * 0.06).toFixed(2)),
-      highlightedSpans: [
-        {
-          start: 0,
-          end: Math.min(40, c.summary.length),
-          text: c.summary.slice(0, 40),
-          reason: "High semantic similarity to query",
-        },
-      ],
-    }));
-
-    setPrediction({ ...MOCK_PREDICTION, casesRetrieved: mockResults.length });
-    setShapValues(MOCK_SHAP_VALUES);
-    setResults(mockResults);
-    setSelectedCase(mockResults[0] ?? null);
-    setIsLoading(false);
+    try {
+      const response = await submitQuery(query);
+      setPrediction(response.prediction);
+      setShapValues(response.shapValues);
+      setResults(response.results);
+      setSelectedCase(response.results[0] ?? null);
+    } catch (e) {
+      setQueryError("Query failed. Check that the backend is running.");
+      setPrediction(null);
+      setShapValues([]);
+      setResults([]);
+      setSelectedCase(null);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function handleNavClick(nav: string) {
     switch (nav) {
-      case "Analytics":  setActiveTab("analytics"); break;
-      case "Precedents": setActiveTab("results");   break;
-      default:           setActiveTab("results");   break;
+      case "Analytics":
+        setActiveTab("analytics");
+        setPrecedentsMode(false);
+        break;
+      case "Precedents":
+        setActiveTab("results");
+        setPrecedentsMode(true);
+        break;
+      default:
+        setActiveTab("results");
+        setPrecedentsMode(false);
+        break;
     }
   }
 
@@ -134,14 +136,19 @@ export default function Home() {
     { id: "analytics", label: "Analytics" },
   ];
 
-  const resultsKey = isLoading ? "loading" : results.length > 0 ? "data" : "empty";
+  const resultsKey = isLoading
+    ? "loading"
+    : queryError
+    ? "error"
+    : results.length > 0
+    ? "data"
+    : "empty";
 
   // Hide left panel on analytics tab
   const showLeftPanel = activeTab !== "analytics";
-  const gridCols      = showLeftPanel ? "300px 1fr 380px" : "1fr 380px";
+  const gridCols     = showLeftPanel ? "300px 1fr 380px" : "1fr 380px";
 
   // ── Map real analytics to chart shapes ──
-  // Filter year data: 1990–2024 only (drop incomplete years)
   const trendData = analyticsData
     ? analyticsData.by_year
         .filter((d) => d.year >= 1990 && d.year <= 2024)
@@ -152,7 +159,7 @@ export default function Home() {
           remanded: d.remanded,
           settled:  0,
         }))
-    : OUTCOME_TRENDS;
+    : undefined;
 
   const courtChartData = analyticsData
     ? analyticsData.by_court.map((d, i) => ({
@@ -162,7 +169,7 @@ export default function Home() {
         avgScore:   Math.round(d.affirm_rate * 100),
         color:      COURT_COLORS[i % COURT_COLORS.length],
       }))
-    : PRACTICE_AREAS;
+    : undefined;
 
   const radarData = analyticsData
     ? analyticsData.by_court.map((d) => ({
@@ -171,29 +178,41 @@ export default function Home() {
       }))
     : undefined;
 
-  const totalCases    = analyticsData?.total_cases ?? SUMMARY_STATS.totalCases;
+  const totalCases    = analyticsData?.total_cases;
   const avgAffirmRate = analyticsData
     ? Math.round(analyticsData.affirm_rate * 100)
-    : SUMMARY_STATS.avgAffirmRate;
-  const reversalRate  = analyticsData
+    : null;
+  const reversalRate = analyticsData
     ? Math.round((analyticsData.reversed / analyticsData.total_cases) * 100)
-    : 100 - SUMMARY_STATS.avgAffirmRate;
-  const circuitCount  = analyticsData
-    ? analyticsData.by_court.length
-    : PRACTICE_AREAS.length;
+    : null;
+  const circuitCount = analyticsData?.by_court.length ?? null;
 
-  // Muted academic outcome colors for distribution bars
   const outcomeDist = analyticsData
     ? [
-        { label: "Affirmed", value: Math.round((analyticsData.affirmed / analyticsData.total_cases) * 100), count: analyticsData.affirmed.toLocaleString(), color: "#166534" },
-        { label: "Reversed", value: Math.round((analyticsData.reversed / analyticsData.total_cases) * 100), count: analyticsData.reversed.toLocaleString(), color: "#991b1b" },
-        { label: "Remanded", value: Math.round((analyticsData.remanded / analyticsData.total_cases) * 100), count: analyticsData.remanded.toLocaleString(), color: "#92400e" },
+        {
+          label: "Affirmed",
+          value: Math.round((analyticsData.affirmed / analyticsData.total_cases) * 100),
+          count: analyticsData.affirmed.toLocaleString(),
+          color: "#166534",
+        },
+        {
+          label: "Reversed",
+          value: Math.round((analyticsData.reversed / analyticsData.total_cases) * 100),
+          count: analyticsData.reversed.toLocaleString(),
+          color: "#991b1b",
+        },
+        {
+          label: "Remanded",
+          value: Math.round((analyticsData.remanded / analyticsData.total_cases) * 100),
+          count: analyticsData.remanded.toLocaleString(),
+          color: "#92400e",
+        },
       ]
-    : [
-        { label: "Affirmed", value: 64, count: "1,851", color: "#166534" },
-        { label: "Reversed", value: 21, count: "607",   color: "#991b1b" },
-        { label: "Remanded", value: 11, count: "318",   color: "#92400e" },
-      ];
+    : [];
+
+  const emptyMsg = precedentsMode
+    ? "Browse precedents or submit a query to find relevant cases"
+    : "Submit a query to see results";
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: "#f8f6f1" }}>
@@ -205,7 +224,7 @@ export default function Home() {
         {showLeftPanel && (
           <aside
             className="flex flex-col gap-4 p-4 overflow-y-auto border-r"
-            style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
+            style={{ background: "#f8f6f1", borderColor: "#e2ddd6" }}
           >
             <PredictionCard prediction={prediction} isLoading={isLoading} />
             <FeatureImportanceChart shapValues={shapValues} isLoading={isLoading} />
@@ -229,7 +248,7 @@ export default function Home() {
             {TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); setPrecedentsMode(false); }}
                 className="px-4 py-2 text-sm font-medium transition-colors relative"
                 style={{ color: activeTab === tab.id ? "#1a4b8c" : "#a8a29e" }}
               >
@@ -259,7 +278,20 @@ export default function Home() {
                     className="flex items-center justify-center h-full text-sm"
                     style={{ color: "#a8a29e" }}
                   >
-                    Submit a query to see results
+                    {emptyMsg}
+                  </motion.div>
+                )}
+                {resultsKey === "error" && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-center h-full text-sm"
+                    style={{ color: "#991b1b" }}
+                  >
+                    {queryError}
                   </motion.div>
                 )}
                 {resultsKey === "loading" && (
@@ -284,7 +316,11 @@ export default function Home() {
                     className="h-full"
                     style={{ background: "#ffffff" }}
                   >
-                    <ResultsList results={results} selectedId={selectedCase?.id ?? null} onSelect={setSelectedCase} />
+                    <ResultsList
+                      results={results}
+                      selectedId={selectedCase?.id ?? null}
+                      onSelect={setSelectedCase}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -293,23 +329,39 @@ export default function Home() {
             {/* ── Clusters ── */}
             {activeTab === "clusters" && (
               <div className="p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p
-                    className="uppercase"
-                    style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.12em", color: "#a8a29e" }}
+                {results.length === 0 ? (
+                  <div
+                    className="flex items-center justify-center h-64 text-sm"
+                    style={{ color: "#a8a29e" }}
                   >
-                    Embedding Space · {MOCK_EMBEDDING_POINTS.length} cases
-                  </p>
-                  <p style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: "#a8a29e" }}>
-                    Hover a point to inspect
-                  </p>
-                </div>
-                <EmbeddingScatter
-                  points={MOCK_EMBEDDING_POINTS}
-                  queryPoint={{ x: 0.3, y: -0.8, title: "Your Query" }}
-                  selectedId={selectedCase?.id}
-                  retrievedIds={results.map((r) => `e${r.id}`)}
-                />
+                    Submit a query to visualise the embedding space
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p
+                        className="uppercase"
+                        style={{
+                          fontFamily: "IBM Plex Mono, monospace",
+                          fontSize: 10,
+                          letterSpacing: "0.12em",
+                          color: "#a8a29e",
+                        }}
+                      >
+                        Embedding Space · {results.length} cases
+                      </p>
+                      <p style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: "#a8a29e" }}>
+                        Hover a point to inspect
+                      </p>
+                    </div>
+                    <EmbeddingScatter
+                      points={[]}
+                      queryPoint={{ x: 0.3, y: -0.8, title: "Your Query" }}
+                      selectedId={selectedCase?.id}
+                      retrievedIds={results.map((r) => r.id)}
+                    />
+                  </>
+                )}
               </div>
             )}
 
@@ -323,14 +375,45 @@ export default function Home() {
                   >
                     Loading analytics…
                   </div>
+                ) : analyticsError ? (
+                  <div
+                    className="flex items-center justify-center h-48 text-sm"
+                    style={{ color: "#991b1b" }}
+                  >
+                    Failed to load analytics. Check that the backend is running.
+                  </div>
                 ) : (
                   <>
                     {/* Stat cards — 4 real metrics */}
                     <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                      <StatCard label="Total Cases"     value={totalCases.toLocaleString()} icon={FileText}    accent="blue"  delay={0}    />
-                      <StatCard label="Avg Affirm Rate" value={`${avgAffirmRate}%`}          icon={TrendingUp}  accent="green" delay={0.05} />
-                      <StatCard label="Reversal Rate"   value={`${reversalRate}%`}            icon={TrendingDown} accent="red"  delay={0.1}  />
-                      <StatCard label="Circuits Covered" value={String(circuitCount)}         icon={GitBranch}   accent="blue"  delay={0.15} />
+                      <StatCard
+                        label="Total Cases"
+                        value={totalCases != null ? totalCases.toLocaleString() : "—"}
+                        icon={FileText}
+                        accent="blue"
+                        delay={0}
+                      />
+                      <StatCard
+                        label="Avg Affirm Rate"
+                        value={avgAffirmRate != null ? `${avgAffirmRate}%` : "—"}
+                        icon={TrendingUp}
+                        accent="green"
+                        delay={0.05}
+                      />
+                      <StatCard
+                        label="Reversal Rate"
+                        value={reversalRate != null ? `${reversalRate}%` : "—"}
+                        icon={TrendingDown}
+                        accent="red"
+                        delay={0.1}
+                      />
+                      <StatCard
+                        label="Circuits Covered"
+                        value={circuitCount != null ? String(circuitCount) : "—"}
+                        icon={GitBranch}
+                        accent="blue"
+                        delay={0.15}
+                      />
                     </div>
 
                     {/* Trend + Affirm Rate */}
@@ -338,8 +421,8 @@ export default function Home() {
                       <div className="lg:col-span-2">
                         <OutcomeTrendChart
                           data={trendData}
-                          title={analyticsData ? "Outcome Trends by Year" : "Outcome Trends — 12 Month"}
-                          subtitle={analyticsData ? "Federal Circuit Courts of Appeals" : undefined}
+                          title="Outcome Trends by Year"
+                          subtitle="Federal Circuit Courts of Appeals"
                         />
                       </div>
                       <AffirmRateChart data={radarData} />
@@ -349,7 +432,7 @@ export default function Home() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <PracticeAreaChart
                         data={courtChartData}
-                        title={analyticsData ? "Cases by Court" : "Cases by Practice Area"}
+                        title="Cases by Court"
                       />
                       <motion.div
                         initial={{ opacity: 0, y: 16 }}
@@ -364,57 +447,67 @@ export default function Home() {
                         >
                           Outcome Distribution
                         </p>
-                        <div className="space-y-3">
-                          {outcomeDist.map((item, i) => (
-                            <motion.div
-                              key={item.label}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: 0.4 + i * 0.06 }}
-                            >
-                              <div className="flex items-center justify-between text-sm mb-1.5">
-                                <span style={{ color: "#57534e" }}>{item.label}</span>
-                                <span className="font-mono font-medium" style={{ color: item.color }}>
-                                  {item.value}%
-                                </span>
-                              </div>
-                              <div className="h-2 rounded-full overflow-hidden" style={{ background: "#e2ddd6" }}>
+                        {outcomeDist.length === 0 ? (
+                          <div className="h-32 flex items-center justify-center text-sm" style={{ color: "#a8a29e" }}>
+                            No data
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-3">
+                              {outcomeDist.map((item, i) => (
                                 <motion.div
-                                  className="h-full rounded-full"
-                                  style={{ backgroundColor: item.color }}
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${item.value}%` }}
-                                  transition={{ duration: 0.9, ease: "easeOut", delay: 0.5 + i * 0.08 }}
-                                />
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                        <div
-                          className="mt-5 pt-4 border-t grid gap-2"
-                          style={{
-                            borderColor: "#e2ddd6",
-                            gridTemplateColumns: `repeat(${outcomeDist.length}, 1fr)`,
-                          }}
-                        >
-                          {outcomeDist.map((item) => (
-                            <div key={item.label} className="text-center">
-                              <p className="font-mono text-lg font-semibold" style={{ color: item.color }}>
-                                {item.count}
-                              </p>
-                              <p className="text-[10px] mt-0.5" style={{ color: "#a8a29e" }}>
-                                {item.label}
-                              </p>
+                                  key={item.label}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ duration: 0.3, delay: 0.4 + i * 0.06 }}
+                                >
+                                  <div className="flex items-center justify-between text-sm mb-1.5">
+                                    <span style={{ color: "#57534e" }}>{item.label}</span>
+                                    <span className="font-mono font-medium" style={{ color: item.color }}>
+                                      {item.value}%
+                                    </span>
+                                  </div>
+                                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "#e2ddd6" }}>
+                                    <motion.div
+                                      className="h-full rounded-full"
+                                      style={{ backgroundColor: item.color }}
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${item.value}%` }}
+                                      transition={{ duration: 0.9, ease: "easeOut", delay: 0.5 + i * 0.08 }}
+                                    />
+                                  </div>
+                                </motion.div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                            <div
+                              className="mt-5 pt-4 border-t grid gap-2"
+                              style={{
+                                borderColor: "#e2ddd6",
+                                gridTemplateColumns: `repeat(${outcomeDist.length}, 1fr)`,
+                              }}
+                            >
+                              {outcomeDist.map((item) => (
+                                <div key={item.label} className="text-center">
+                                  <p className="font-mono text-lg font-semibold" style={{ color: item.color }}>
+                                    {item.count}
+                                  </p>
+                                  <p className="text-[10px] mt-0.5" style={{ color: "#a8a29e" }}>
+                                    {item.label}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </motion.div>
                     </div>
 
-                    {/* Case Table + Judge Panel */}
+                    {/* Case Table + Corpus Coverage */}
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                      <div className="xl:col-span-2"><CaseTable /></div>
-                      <JudgePanel />
+                      <div className="xl:col-span-2">
+                        <CaseTable />
+                      </div>
+                      <JudgePanel data={analyticsData ?? undefined} />
                     </div>
 
                     <motion.footer

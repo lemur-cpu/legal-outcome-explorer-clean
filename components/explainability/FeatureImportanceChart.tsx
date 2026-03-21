@@ -39,7 +39,7 @@ export function FeatureImportanceChart({ shapValues, isLoading = false }: Props)
   return (
     <div
       className="rounded-lg border p-4"
-      style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
+      style={{ background: "#f8f6f1", borderColor: "#e2ddd6" }}
     >
       <p
         className="text-[10px] uppercase mb-3"

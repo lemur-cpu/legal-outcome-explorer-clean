@@ -16,7 +16,6 @@ import {
   Cell,
 } from "recharts";
 import { motion } from "framer-motion";
-import { PRACTICE_AREAS } from "@/data/mock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const GRID = "#e2ddd6";
@@ -47,11 +46,7 @@ interface AffirmRateChartProps {
 }
 
 export function AffirmRateChart({ data }: AffirmRateChartProps) {
-  const radarData = data ?? PRACTICE_AREAS.map((a) => ({
-    area: a.area,
-    affirmRate: a.affirmRate,
-    avgScore: a.avgScore,
-  }));
+  const radarData = data ?? [];
 
   // Fewer than 5 points → radar looks broken; use horizontal bar instead
   const useBar = radarData.length < 5;

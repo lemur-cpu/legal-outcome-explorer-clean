@@ -11,7 +11,6 @@ import {
   Cell,
 } from "recharts";
 import { motion } from "framer-motion";
-import { PRACTICE_AREAS, PracticeAreaBreakdown } from "@/data/mock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const GRID = "#e2ddd6";
@@ -42,14 +41,22 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   );
 }
 
+interface ChartEntry {
+  area: string;
+  count: number;
+  affirmRate: number;
+  avgScore?: number;
+  color: string;
+}
+
 interface PracticeAreaChartProps {
-  data?: PracticeAreaBreakdown[];
+  data?: ChartEntry[];
   title?: string;
 }
 
 export function PracticeAreaChart({ data, title }: PracticeAreaChartProps) {
-  const chartData  = data ?? PRACTICE_AREAS;
-  const chartTitle = title ?? "Cases by Practice Area";
+  const chartData  = data ?? [];
+  const chartTitle = title ?? "Cases by Court";
 
   return (
     <motion.div

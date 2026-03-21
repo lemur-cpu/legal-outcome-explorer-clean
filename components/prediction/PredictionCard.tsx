@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import type { PredictionResult } from "@/lib/types";
-import type { OutcomeType } from "@/data/mock";
+import type { PredictionResult, OutcomeType } from "@/lib/types";
 
 const MONO = "IBM Plex Mono, monospace";
 
@@ -121,7 +120,7 @@ export function PredictionCard({ prediction, isLoading }: PredictionCardProps) {
   return (
     <div
       className="rounded-lg border p-4"
-      style={{ background: "#ffffff", borderColor: "#e2ddd6" }}
+      style={{ background: "#f8f6f1", borderColor: "#e2ddd6" }}
     >
       <p
         className="text-[10px] uppercase tracking-widest mb-4"

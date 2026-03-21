@@ -1,30 +1,62 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { JUDGE_STATS } from "@/data/mock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import type { RealAnalyticsData } from "@/lib/types";
 
-function JudgeBar({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-text-muted">{label}</span>
-        <span className="font-mono" style={{ color }}>{value}%</span>
-      </div>
-      <div className="h-1.5 bg-surface rounded-full overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-        />
-      </div>
-    </div>
-  );
+const COURT_LABELS: Record<string, string> = {
+  ca1: "1st Circuit",
+  ca2: "2nd Circuit",
+  ca3: "3rd Circuit",
+  ca4: "4th Circuit",
+  ca5: "5th Circuit",
+  ca6: "6th Circuit",
+  ca7: "7th Circuit",
+  ca8: "8th Circuit",
+  ca9: "9th Circuit",
+  ca10: "10th Circuit",
+  ca11: "11th Circuit",
+  cadc: "D.C. Circuit",
+  cafc: "Federal Circuit",
+};
+
+interface JudgePanelProps {
+  data?: RealAnalyticsData;
 }
 
-export function JudgePanel() {
+export function JudgePanel({ data }: JudgePanelProps) {
+  const minYear = data?.by_year?.length
+    ? Math.min(...data.by_year.map((y) => y.year))
+    : null;
+  const maxYear = data?.by_year?.length
+    ? Math.max(...data.by_year.map((y) => y.year))
+    : null;
+
+  const stats = data
+    ? [
+        {
+          label: "Total Opinions",
+          value: data.total_cases.toLocaleString(),
+        },
+        {
+          label: "Date Range",
+          value: minYear && maxYear ? `${minYear}–${maxYear}` : "—",
+        },
+        {
+          label: "Avg Opinion Length",
+          value: data.avg_opinion_tokens
+            ? `${data.avg_opinion_tokens.toLocaleString()} tokens`
+            : "—",
+        },
+        {
+          label: "Avg Label Confidence",
+          value: data.avg_label_confidence
+            ? `${(data.avg_label_confidence * 100).toFixed(1)}%`
+            : "—",
+        },
+      ]
+    : [];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -33,46 +65,67 @@ export function JudgePanel() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Judge Analytics</CardTitle>
+          <CardTitle>Corpus Coverage</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {JUDGE_STATS.map((judge, i) => (
-            <motion.div
-              key={judge.name}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.5 + i * 0.08 }}
-              className="p-3 rounded-lg bg-surface-elevated border border-border/50 space-y-3"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{judge.name}</p>
-                  <p className="text-xs text-text-muted mt-0.5">{judge.court}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-sm text-accent">{judge.totalCases.toLocaleString()}</p>
-                  <p className="text-xs text-text-muted">cases</p>
-                </div>
+          {!data ? (
+            <p className="text-sm text-text-muted">Loading corpus stats…</p>
+          ) : (
+            <>
+              {/* Key stats */}
+              <div className="grid grid-cols-2 gap-3">
+                {stats.map((s) => (
+                  <div
+                    key={s.label}
+                    className="p-3 rounded-lg bg-surface-elevated border border-border/60"
+                  >
+                    <p className="text-[10px] text-text-muted uppercase tracking-wide mb-0.5">
+                      {s.label}
+                    </p>
+                    <p className="font-mono text-sm text-text-primary">{s.value}</p>
+                  </div>
+                ))}
               </div>
-              <div className="space-y-2">
-                <JudgeBar label="Affirm Rate" value={judge.affirmRate} color="#34d399" />
-                <JudgeBar label="Reversal Rate" value={judge.reversalRate} color="#f87171" />
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex flex-wrap gap-1">
-                  {judge.practiceAreas.slice(0, 2).map((area) => (
-                    <span
-                      key={area}
-                      className="px-1.5 py-0.5 rounded bg-accent-muted text-accent text-[10px]"
+
+              {/* Courts list */}
+              <div>
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
+                  Circuits Covered
+                </p>
+                <div className="space-y-1.5">
+                  {data.by_court.map((c, i) => (
+                    <motion.div
+                      key={c.court}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.25, delay: 0.5 + i * 0.05 }}
+                      className="flex items-center justify-between text-xs"
                     >
-                      {area}
-                    </span>
+                      <span className="text-text-secondary">
+                        {COURT_LABELS[c.court] ?? c.court.toUpperCase()}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-1.5 bg-surface-elevated rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: "#1a4b8c" }}
+                            initial={{ width: 0 }}
+                            animate={{
+                              width: `${Math.round((c.count / data.total_cases) * 100)}%`,
+                            }}
+                            transition={{ duration: 0.7, ease: "easeOut", delay: 0.6 + i * 0.05 }}
+                          />
+                        </div>
+                        <span className="font-mono text-text-muted w-8 text-right">
+                          {c.count}
+                        </span>
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
-                <span className="text-text-muted font-mono">{judge.avgDecisionDays}d avg</span>
               </div>
-            </motion.div>
-          ))}
+            </>
+          )}
         </CardContent>
       </Card>
     </motion.div>

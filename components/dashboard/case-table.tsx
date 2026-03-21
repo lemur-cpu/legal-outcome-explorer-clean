@@ -1,49 +1,93 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Search, SlidersHorizontal } from "lucide-react";
-import { MOCK_CASES, Case, OutcomeType } from "@/data/mock";
-import { OutcomeBadge, Badge } from "@/components/ui/badge";
-import { ScoreRing } from "@/components/ui/score-ring";
+import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { ChevronDown, ChevronUp, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { getCases } from "@/lib/api";
+import type { CaseItem, OutcomeType } from "@/lib/types";
+import { OutcomeBadge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+type SortKey = "case_id" | "court" | "year" | "outcome" | "label_confidence";
+type SortDir = "asc" | "desc";
 
 const OUTCOME_OPTIONS: { label: string; value: OutcomeType | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Affirmed", value: "affirmed" },
   { label: "Reversed", value: "reversed" },
   { label: "Remanded", value: "remanded" },
-  { label: "Settled", value: "settled" },
 ];
 
+const PAGE_SIZE = 50;
+
+const COURT_LABELS: Record<string, string> = {
+  "ca1": "1st Cir.",
+  "ca2": "2nd Cir.",
+  "ca3": "3rd Cir.",
+  "ca4": "4th Cir.",
+  "ca5": "5th Cir.",
+  "ca6": "6th Cir.",
+  "ca7": "7th Cir.",
+  "ca8": "8th Cir.",
+  "ca9": "9th Cir.",
+  "ca10": "10th Cir.",
+  "ca11": "11th Cir.",
+  "cadc": "D.C. Cir.",
+  "cafc": "Fed. Cir.",
+};
+
+function formatCourt(court: string) {
+  return COURT_LABELS[court] ?? court.toUpperCase();
+}
+
 export function CaseTable() {
-  const [search, setSearch] = useState("");
+  const [cases, setCases] = useState<CaseItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeType | "all">("all");
-  const [sortKey, setSortKey] = useState<keyof Case>("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortKey, setSortKey] = useState<SortKey>("year");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filtered = MOCK_CASES.filter((c) => {
-    const matchesSearch =
-      search === "" ||
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.citation.toLowerCase().includes(search.toLowerCase()) ||
-      c.judge.toLowerCase().includes(search.toLowerCase()) ||
-      c.practiceArea.toLowerCase().includes(search.toLowerCase());
-    const matchesOutcome =
-      outcomeFilter === "all" || c.outcome === outcomeFilter;
-    return matchesSearch && matchesOutcome;
-  });
+  const fetchCases = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getCases({
+        outcome: outcomeFilter !== "all" ? outcomeFilter : undefined,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+      });
+      setCases(data.cases);
+      setTotal(data.total);
+    } catch (e) {
+      setError("Failed to load cases from backend.");
+    } finally {
+      setLoading(false);
+    }
+  }, [outcomeFilter, page]);
 
-  const sorted = [...filtered].sort((a, b) => {
-    const av = a[sortKey] as string | number;
-    const bv = b[sortKey] as string | number;
+  useEffect(() => {
+    fetchCases();
+  }, [fetchCases]);
+
+  // Reset to page 0 when filter changes
+  useEffect(() => {
+    setPage(0);
+  }, [outcomeFilter]);
+
+  const sorted = [...cases].sort((a, b) => {
+    const av = a[sortKey];
+    const bv = b[sortKey];
     const dir = sortDir === "asc" ? 1 : -1;
     return av < bv ? -dir : av > bv ? dir : 0;
   });
 
-  function toggleSort(key: keyof Case) {
+  function toggleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -52,7 +96,7 @@ export function CaseTable() {
     }
   }
 
-  function SortIcon({ col }: { col: keyof Case }) {
+  function SortIcon({ col }: { col: SortKey }) {
     if (sortKey !== col) return <ChevronDown size={12} className="text-text-muted opacity-40" />;
     return sortDir === "asc" ? (
       <ChevronUp size={12} className="text-accent" />
@@ -60,6 +104,8 @@ export function CaseTable() {
       <ChevronDown size={12} className="text-accent" />
     );
   }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <motion.div
@@ -73,183 +119,158 @@ export function CaseTable() {
             <CardTitle>Case Explorer</CardTitle>
             <div className="flex items-center gap-2">
               <SlidersHorizontal size={14} className="text-text-muted" />
-              <span className="text-xs text-text-muted font-mono">{sorted.length} results</span>
+              <span className="text-xs text-text-muted font-mono">
+                {loading ? "…" : `${total.toLocaleString()} cases`}
+              </span>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input
-                type="text"
-                placeholder="Search cases, citations, judges..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-surface-elevated border border-border rounded text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20"
-              />
-            </div>
-            <div className="flex gap-1">
-              {OUTCOME_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setOutcomeFilter(opt.value)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs font-medium rounded transition-colors",
-                    outcomeFilter === opt.value
-                      ? "bg-accent text-white"
-                      : "bg-surface-elevated text-text-secondary hover:text-text-primary border border-border"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+          {/* Outcome filter */}
+          <div className="flex gap-1 mb-4">
+            {OUTCOME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setOutcomeFilter(opt.value)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded transition-colors",
+                  outcomeFilter === opt.value
+                    ? "bg-accent text-white"
+                    : "bg-surface-elevated text-text-secondary hover:text-text-primary border border-border"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto -mx-5">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {[
-                    { label: "Case", key: "title" as keyof Case },
-                    { label: "Court", key: "court" as keyof Case },
-                    { label: "Area", key: "practiceArea" as keyof Case },
-                    { label: "Outcome", key: "outcome" as keyof Case },
-                    { label: "Conf.", key: "confidenceScore" as keyof Case },
-                    { label: "Prec.", key: "precedentStrength" as keyof Case },
-                    { label: "Date", key: "date" as keyof Case },
-                  ].map(({ label, key }) => (
-                    <th
-                      key={key}
-                      onClick={() => toggleSort(key)}
-                      className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-secondary transition-colors whitespace-nowrap"
-                    >
-                      <span className="flex items-center gap-1">
-                        {label}
-                        <SortIcon col={key} />
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <AnimatePresence initial={false}>
+            {error ? (
+              <div className="py-16 text-center text-reversed text-sm">{error}</div>
+            ) : loading ? (
+              <div className="py-16 text-center text-text-muted text-sm">Loading cases…</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    {(
+                      [
+                        { label: "Case ID", key: "case_id" as SortKey },
+                        { label: "Court", key: "court" as SortKey },
+                        { label: "Year", key: "year" as SortKey },
+                        { label: "Outcome", key: "outcome" as SortKey },
+                        { label: "Confidence", key: "label_confidence" as SortKey },
+                      ] as { label: string; key: SortKey }[]
+                    ).map(({ label, key }) => (
+                      <th
+                        key={key}
+                        onClick={() => toggleSort(key)}
+                        className="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-secondary transition-colors whitespace-nowrap"
+                      >
+                        <span className="flex items-center gap-1">
+                          {label}
+                          <SortIcon col={key} />
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
                   {sorted.map((c, i) => (
                     <>
-                      <motion.tr
-                        key={c.id}
-                        layout
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2, delay: i * 0.03 }}
-                        onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                      <tr
+                        key={c.case_id}
+                        onClick={() => setExpandedId(expandedId === c.case_id ? null : c.case_id)}
                         className={cn(
                           "border-b border-border/50 cursor-pointer group transition-colors",
-                          expandedId === c.id
+                          expandedId === c.case_id
                             ? "bg-accent-muted"
                             : "hover:bg-surface-elevated"
                         )}
                       >
                         <td className="px-5 py-3.5">
-                          <div>
-                            <p className="font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-1">
-                              {c.title}
-                            </p>
-                            <p className="text-xs text-text-muted font-mono mt-0.5">{c.citation}</p>
-                          </div>
+                          <p className="font-mono text-xs text-text-primary group-hover:text-accent transition-colors">
+                            {c.case_id}
+                          </p>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <span className="text-text-secondary text-xs">{c.court}</span>
+                          <span className="text-text-secondary text-xs">{formatCourt(c.court)}</span>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <Badge variant="secondary">{c.practiceArea}</Badge>
+                          <span className="font-mono text-xs text-text-muted">{c.year}</span>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           <OutcomeBadge outcome={c.outcome} />
                         </td>
-                        <td className="px-5 py-3.5">
-                          <ScoreRing score={c.confidenceScore} size={40} strokeWidth={3} />
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <ScoreRing score={c.precedentStrength} size={40} strokeWidth={3} />
-                        </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <span className="text-xs text-text-muted font-mono">
-                            {new Date(c.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                          <span
+                            className="font-mono text-xs"
+                            style={{
+                              color:
+                                c.label_confidence >= 0.8
+                                  ? "#166534"
+                                  : c.label_confidence >= 0.6
+                                  ? "#92400e"
+                                  : "#991b1b",
+                            }}
+                          >
+                            {(c.label_confidence * 100).toFixed(0)}%
                           </span>
                         </td>
-                      </motion.tr>
-                      <AnimatePresence>
-                        {expandedId === c.id && (
-                          <motion.tr
-                            key={`${c.id}-expanded`}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
+                      </tr>
+                      {expandedId === c.case_id && (
+                        <tr key={`${c.case_id}-expanded`}>
+                          <td
+                            colSpan={5}
+                            className="px-5 py-4 bg-surface-elevated border-b border-border"
                           >
-                            <td colSpan={7} className="px-5 py-4 bg-surface-elevated border-b border-border">
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="md:col-span-2">
-                                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
-                                    Summary
-                                  </p>
-                                  <p className="text-sm text-text-secondary font-legal leading-relaxed">
-                                    {c.summary}
-                                  </p>
-                                  <div className="flex flex-wrap gap-1.5 mt-3">
-                                    {c.tags.map((tag) => (
-                                      <Badge key={tag} variant="outline">
-                                        {tag}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
-                                    Details
-                                  </p>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-text-muted">Judge</span>
-                                    <span className="text-text-secondary">{c.judge}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-text-muted">Citations</span>
-                                    <span className="font-mono text-accent">{c.citationCount}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-text-muted">Confidence</span>
-                                    <span className="font-mono text-affirmed">{c.confidenceScore}/100</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-text-muted">Precedent</span>
-                                    <span className="font-mono text-highlight">{c.precedentStrength}/100</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </motion.tr>
-                        )}
-                      </AnimatePresence>
+                            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
+                              Snippet
+                            </p>
+                            <p className="text-sm text-text-secondary font-legal leading-relaxed">
+                              {c.snippet}
+                            </p>
+                          </td>
+                        </tr>
+                      )}
                     </>
                   ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-            {sorted.length === 0 && (
+                </tbody>
+              </table>
+            )}
+
+            {!loading && !error && sorted.length === 0 && (
               <div className="py-16 text-center text-text-muted text-sm">
                 No cases match your filters.
               </div>
             )}
           </div>
+
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+              <span className="text-xs text-text-muted font-mono">
+                Page {page + 1} of {totalPages}
+              </span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="p-1.5 rounded border border-border text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="p-1.5 rounded border border-border text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { type OutcomeType } from "@/data/mock";
+import type { OutcomeType } from "@/lib/types";
 
-const outcomeConfig: Record<OutcomeType, { label: string; className: string }> = {
+const outcomeConfig: Partial<Record<OutcomeType, { label: string; className: string }>> = {
   affirmed: {
     label: "Affirmed",
     className: "bg-affirmed-muted text-affirmed border border-affirmed/20",
@@ -26,7 +26,10 @@ interface OutcomeBadgeProps {
 }
 
 export function OutcomeBadge({ outcome, className }: OutcomeBadgeProps) {
-  const config = outcomeConfig[outcome];
+  const config = outcomeConfig[outcome] ?? {
+    label: outcome,
+    className: "bg-surface-elevated text-text-secondary border border-border",
+  };
   return (
     <span
       className={cn(

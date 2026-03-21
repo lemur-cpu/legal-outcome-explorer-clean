@@ -1,4 +1,4 @@
-import type { OutcomeType } from "@/data/mock";
+export type OutcomeType = "affirmed" | "reversed" | "remanded" | "settled" | "unknown";
 
 // A single case returned as part of a query result (extends mock Case shape)
 export interface CaseResult {
@@ -50,15 +50,6 @@ export interface QueryResponse {
   results: CaseResult[];
 }
 
-// Analytics data bundle (mirrors mock data shapes)
-export interface AnalyticsData {
-  cases: import("@/data/mock").Case[];
-  outcomeTrends: import("@/data/mock").OutcomeTrend[];
-  practiceAreas: import("@/data/mock").PracticeAreaBreakdown[];
-  judgeStats: import("@/data/mock").JudgeStats[];
-  summaryStats: typeof import("@/data/mock").SUMMARY_STATS;
-}
-
 // Real analytics response from /api/analytics/outcomes
 export interface CourtData {
   court: string;
@@ -81,8 +72,25 @@ export interface RealAnalyticsData {
   reversed: number;
   remanded: number;
   affirm_rate: number;
+  avg_opinion_tokens: number;
+  avg_label_confidence: number;
   by_court: CourtData[];
   by_year: YearData[];
+}
+
+// A single case row from GET /api/cases
+export interface CaseItem {
+  case_id: string;
+  court: string;
+  year: number;
+  outcome: OutcomeType;
+  label_confidence: number;
+  snippet: string;
+}
+
+export interface CasesResponse {
+  total: number;
+  cases: CaseItem[];
 }
 
 // A point in the 2-D embedding space (for the Clusters tab)

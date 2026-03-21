@@ -11,7 +11,6 @@ import {
   Legend,
 } from "recharts";
 import { motion } from "framer-motion";
-import { OUTCOME_TRENDS } from "@/data/mock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface TrendEntry {
@@ -64,8 +63,8 @@ interface OutcomeTrendChartProps {
 }
 
 export function OutcomeTrendChart({ data, title, subtitle }: OutcomeTrendChartProps) {
-  const chartData  = data ?? OUTCOME_TRENDS;
-  const chartTitle = title ?? "Outcome Trends — 12 Month";
+  const chartData  = data ?? [];
+  const chartTitle = title ?? "Outcome Trends";
 
   return (
     <motion.div
