@@ -14,25 +14,55 @@ from backend.config import settings
 
 LABELED_FILE = Path("data/processed/labeled_cases.jsonl")
 
-OPINION_MARKERS = [
-    "Circuit Judges.\n", "Circuit Judge.\n", "District Judge.\n",
-    "\nPER CURIAM\n", "\nMEMORANDUM\n",
-]
+def extract_snippet(text: str, length: int = 600) -> str:
+    if not text:
+        return ''
 
+    # Remove all leading whitespace/newlines
+    text = text.strip()
 
-def extract_snippet(text: str, length: int = 300) -> str:
-    # Find the judge panel line, then skip ~800 chars to clear the counsel listing
-    start = 0
-    for marker in OPINION_MARKERS:
-        idx = text.upper().find(marker.upper())
-        if idx != -1 and idx < 3000:
-            start = idx + len(marker) + 800
-            break
-    if start == 0 or start > len(text):
-        start = 1200
-    snippet = text[start:start + length].strip()
-    snippet = " ".join(snippet.split())
-    return snippet if len(snippet) > 50 else " ".join(text[1200:1200 + length].split())
+    # Split into lines, drop blank lines
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+
+    # Drop lines that are clearly header/metadata:
+    SKIP_PATTERNS = [
+        lambda l: len(l) < 4,                          # too short
+        lambda l: 'v.' == l[-2:],                      # party line ending
+        lambda l: l.startswith('No.'),                 # docket number
+        lambda l: l.startswith('Argued'),              # argument date
+        lambda l: l.startswith('Decided'),             # decision date
+        lambda l: l.startswith('Before'),              # judge listing
+        lambda l: l.isupper() and len(l) < 60,        # ALL CAPS header
+        lambda l: 'Circuit' in l and len(l) < 40,     # "For the Ninth Circuit"
+        lambda l: 'CLERK' in l,                        # clerk line
+        lambda l: 'Appellant' in l and len(l) < 50,   # party designation
+        lambda l: 'Appellee' in l and len(l) < 50,    # party designation
+        lambda l: 'Plaintiff' in l and len(l) < 50,
+        lambda l: 'Defendant' in l and len(l) < 50,
+        lambda l: l.startswith('FOR THE COURT'),
+        lambda l: 'not appropriate for publication' in l.lower(),
+        lambda l: 'not precedent' in l.lower(),
+    ]
+
+    substantive_lines = []
+    for line in lines:
+        if any(pattern(line) for pattern in SKIP_PATTERNS):
+            continue
+        # Line must be a real sentence (ends with . or contains spaces)
+        if len(line) > 40 and (' ' in line):
+            substantive_lines.append(line)
+
+    # Join first substantive lines up to length chars
+    result = ' '.join(substantive_lines)
+    result = result[:length].strip()
+
+    # Last resort fallback
+    if len(result) < 40:
+        # Just take text starting from 20% in
+        offset = len(text) // 5
+        result = ' '.join(text[offset:offset+length].split())
+
+    return result
 MODEL_NAME = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "precedents"
 VECTOR_DIM = 384

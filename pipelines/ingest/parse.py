@@ -18,11 +18,14 @@ SUMMARY_ORDER_PATTERNS = [
     "not have precedential effect",
     "per curiam",
     "this disposition is not appropriate for publication",
+    "not appropriate for publication and is not precedent",
+    "ninth circuit rule 36-3",
+    "not to be cited as precedent",
 ]
 
 
 def is_summary_order(text: str) -> bool:
-    text_lower = text[:500].lower()
+    text_lower = text[:1200].lower()
     return any(p in text_lower for p in SUMMARY_ORDER_PATTERNS)
 
 
