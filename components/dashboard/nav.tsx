@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Scale, BarChart3, BookOpen, Search, Bell } from "lucide-react";
+import { BarChart3, BookOpen, Search, Github } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Explorer",   icon: Search   },
@@ -23,50 +23,48 @@ export function Nav({ activeNav = "Explorer", onNavClick }: NavProps) {
       className="sticky top-0 z-50 flex items-center justify-between px-6 h-14 border-b"
       style={{ background: "#0f1117", borderColor: "#1e2231" }}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-2.5">
-        <div
-          className="flex items-center justify-center w-7 h-7 rounded"
-          style={{ background: "#1a4b8c" }}
-        >
-          <Scale size={14} className="text-white" />
-        </div>
-        <div>
-          <span className="text-sm font-semibold tracking-tight" style={{ color: "#e2e8f0" }}>
-            Precedent
-          </span>
-          <span className="text-sm font-semibold tracking-tight" style={{ color: "#60a5fa" }}>
-            IQ
-          </span>
-        </div>
+      {/* Logo — text only, no icon */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold tracking-tight" style={{ color: "#e2e8f0", fontFamily: "Inter, sans-serif" }}>
+          Precedent
+        </span>
+        <span className="text-sm font-semibold tracking-tight" style={{ color: "#4f8ef7", fontFamily: "Inter, sans-serif" }}>
+          IQ
+        </span>
         <span
-          className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-medium rounded border"
-          style={{ color: "#94a3b8", background: "#1e2231", borderColor: "#2e3347" }}
+          className="ml-0.5 px-1 py-0.5 rounded border"
+          style={{ color: "#94a3b8", background: "#1e2231", borderColor: "#2e3347", fontFamily: "IBM Plex Mono, monospace", fontSize: 8 }}
         >
           BETA
         </span>
       </div>
 
-      {/* Nav */}
-      <nav className="hidden md:flex items-center gap-1">
+      {/* Nav — centered with more spacing */}
+      <nav className="hidden md:flex items-center gap-2">
         {NAV_ITEMS.map((item) => {
           const isActive = item.label === activeNav;
           return (
             <button
               key={item.label}
               onClick={() => onNavClick?.(item.label)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium rounded-md transition-colors"
               style={{
-                background: isActive ? "rgba(26,75,140,0.3)" : "transparent",
-                color:      isActive ? "#93c5fd" : "#94a3b8",
+                padding:    "6px 16px",
+                background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
+                color:      isActive ? "#ffffff" : "#94a3b8",
+                transition: "background 150ms, color 150ms",
               }}
               onMouseEnter={(e) => {
-                if (!isActive)
+                if (!isActive) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.10)";
                   (e.currentTarget as HTMLButtonElement).style.color = "#e2e8f0";
+                }
               }}
               onMouseLeave={(e) => {
-                if (!isActive)
+                if (!isActive) {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                   (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
+                }
               }}
             >
               <item.icon size={14} />
@@ -76,27 +74,19 @@ export function Nav({ activeNav = "Explorer", onNavClick }: NavProps) {
         })}
       </nav>
 
-      {/* Right */}
-      <div className="flex items-center gap-3">
-        <button
-          className="relative p-1.5 rounded transition-colors"
-          style={{ color: "#64748b" }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#e2e8f0")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#64748b")}
-        >
-          <Bell size={16} />
-          <span
-            className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
-            style={{ background: "#1a4b8c" }}
-          />
-        </button>
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white"
-          style={{ background: "#1a4b8c" }}
-        >
-          JD
-        </div>
-      </div>
+      {/* Right — GitHub link only */}
+      <a
+        href="https://github.com/courtneyquinn/legal-outcome-explorer-clean"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 text-sm transition-colors"
+        style={{ color: "rgba(255,255,255,0.6)", textDecoration: "none" }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = "#ffffff")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.6)")}
+      >
+        <Github size={15} />
+        <span style={{ fontSize: 13 }}>View on GitHub</span>
+      </a>
     </motion.header>
   );
 }

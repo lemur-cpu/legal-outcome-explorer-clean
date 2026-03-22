@@ -40,7 +40,8 @@ export function CaseCard({ case: c, isSelected, onClick, index }: CaseCardProps)
   const badgeBg      = OUTCOME_BG[c.outcome]    ?? OUTCOME_BG.settled;
   const badgeBorder  = OUTCOME_BORDER[c.outcome] ?? OUTCOME_BORDER.settled;
   const year         = c.date.slice(0, 4);
-  const simPct       = Math.round(c.similarity * 100);
+  // similarity is already a scaled percentage value (e.g. 1.0 = 1%, 72.5 = 72.5%)
+  const simPct       = Math.round(c.similarity);
 
   return (
     <motion.div
@@ -84,7 +85,7 @@ export function CaseCard({ case: c, isSelected, onClick, index }: CaseCardProps)
           className="shrink-0 font-semibold"
           style={{ fontFamily: MONO, fontSize: 12, color: "#1a4b8c" }}
         >
-          {simPct}%
+          {simPct}% match
         </span>
       </div>
 

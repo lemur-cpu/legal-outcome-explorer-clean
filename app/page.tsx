@@ -145,8 +145,12 @@ export default function Home() {
     : "empty";
 
   // Hide left panel on analytics tab
-  const showLeftPanel = activeTab !== "analytics";
-  const gridCols     = showLeftPanel ? "300px 1fr 380px" : "1fr 380px";
+  const showLeftPanel  = activeTab !== "analytics";
+  // Hide right panel on analytics tab
+  const showRightPanel = activeTab !== "analytics";
+  const gridCols = activeTab === "analytics"
+    ? "1fr"
+    : "300px 1fr 380px";
 
   // ── Map real analytics to chart shapes ──
   const trendData = analyticsData
@@ -226,8 +230,12 @@ export default function Home() {
             className="flex flex-col gap-4 p-4 overflow-y-auto border-r"
             style={{ background: "#f8f6f1", borderColor: "#e2ddd6" }}
           >
-            <PredictionCard prediction={prediction} isLoading={isLoading} />
-            <FeatureImportanceChart shapValues={shapValues} isLoading={isLoading} />
+            {(isLoading || prediction !== null) && (
+              <>
+                <PredictionCard prediction={prediction} isLoading={isLoading} />
+                <FeatureImportanceChart shapValues={shapValues} isLoading={isLoading} />
+              </>
+            )}
           </aside>
         )}
 
@@ -421,8 +429,8 @@ export default function Home() {
                       <div className="lg:col-span-2">
                         <OutcomeTrendChart
                           data={trendData}
-                          title="Outcome Trends by Year"
-                          subtitle="Federal Circuit Courts of Appeals"
+                          title="Corpus Sample by Year"
+                          subtitle="Cases indexed from CourtListener bulk data"
                         />
                       </div>
                       <AffirmRateChart data={radarData} />
@@ -531,13 +539,15 @@ export default function Home() {
         </main>
 
         {/* ── RIGHT: Case Viewer ──────────────────────────────────────────── */}
-        <aside className="flex flex-col overflow-hidden border-l" style={{ borderColor: "#e2ddd6" }}>
-          <CaseViewer
-            selectedCase={selectedCase}
-            isLoading={isLoading}
-            predictionConfidence={prediction ? Math.round(prediction.confidence * 100) : undefined}
-          />
-        </aside>
+        {showRightPanel && (
+          <aside className="flex flex-col overflow-hidden border-l" style={{ borderColor: "#e2ddd6" }}>
+            <CaseViewer
+              selectedCase={selectedCase}
+              isLoading={isLoading}
+              predictionConfidence={prediction ? Math.round(prediction.confidence * 100) : undefined}
+            />
+          </aside>
+        )}
       </div>
     </div>
   );

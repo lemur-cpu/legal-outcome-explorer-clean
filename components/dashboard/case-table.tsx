@@ -190,9 +190,23 @@ export function CaseTable() {
                         )}
                       >
                         <td className="px-5 py-3.5">
-                          <p className="font-mono text-xs text-text-primary group-hover:text-accent transition-colors">
-                            {c.case_id}
-                          </p>
+                          {(() => {
+                            const lines = c.snippet.split("\n").filter((l) => l.trim());
+                            const titleLine = lines.find((l) => l.includes(" v. "));
+                            const displayName = titleLine
+                              ? titleLine.slice(0, 60)
+                              : `Opinion #${c.case_id}`;
+                            return (
+                              <>
+                                <p className="text-xs font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-1">
+                                  {displayName}
+                                </p>
+                                <p className="font-mono text-[10px] text-text-muted mt-0.5">
+                                  {c.case_id}
+                                </p>
+                              </>
+                            );
+                          })()}
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           <span className="text-text-secondary text-xs">{formatCourt(c.court)}</span>

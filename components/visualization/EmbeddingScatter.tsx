@@ -118,6 +118,7 @@ export function EmbeddingScatter({
   const hasQuery      = (retrievedIds?.length ?? 0) > 0;
   const corpusPoints  = points.filter((p) => p.id !== selectedId);
   const selectedPoint = selectedId ? points.find((p) => p.id === selectedId) : undefined;
+  const tooFewPoints  = points.length < 3;
 
   const queryData: EmbeddingPoint[] = queryPoint
     ? [{
@@ -132,6 +133,21 @@ export function EmbeddingScatter({
 
   return (
     <div className="relative w-full" style={{ height: 420 }}>
+      {tooFewPoints && (
+        <div
+          className="absolute inset-0 flex items-center justify-center z-10"
+          style={{ pointerEvents: "none" }}
+        >
+          <p
+            className="text-center leading-relaxed"
+            style={{ fontFamily: MONO, fontSize: 11, color: "#8b90a8", maxWidth: 280 }}
+          >
+            Cluster visualization requires more retrieved cases.
+            <br />
+            Try a more specific query.
+          </p>
+        </div>
+      )}
       <ResponsiveContainer width="100%" height={420}>
         <ScatterChart margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
           <XAxis dataKey="x" type="number" hide domain={[-5.5, 5.5]} />

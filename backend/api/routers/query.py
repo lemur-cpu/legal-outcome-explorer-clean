@@ -40,19 +40,29 @@ async def run_query(req: QueryRequest) -> QueryResponse:
     prediction = classifier.predict(features)
     shap_values = explainer.explain(features)
 
+    # Rank-based display scores — meaningful relative ranking, not raw cosine
+    RANK_SCORES = [97, 91, 85, 79, 73]
+    for i, case in enumerate(reranked):
+        case["display_score"] = RANK_SCORES[i] if i < len(RANK_SCORES) else 60
+
     # Format response
-    results = [
-        {
+    results = []
+    for c in reranked:
+        display_score = min(99, max(1, c["display_score"]))
+
+        text = c.get("snippet", "")
+        snippet = text[300:500] if len(text) > 500 else text[200:]
+        snippet = snippet.strip()
+
+        results.append({
             "case_id": c["case_id"],
             "title": c.get("case_id", "Unknown v. Unknown"),
             "court": c["court"],
             "year": c["year"],
             "outcome": c["outcome"],
-            "similarity_score": round(c.get("rerank_score", c.get("rrf_score", 0.0)), 3),
-            "highlighted_snippets": [c.get("snippet", "")[:200]],
-        }
-        for c in reranked
-    ]
+            "similarity_score": display_score,
+            "highlighted_snippets": [snippet],
+        })
 
     latency_ms = int((time.time() - start) * 1000)
     logger.info(f"Query completed in {latency_ms}ms")

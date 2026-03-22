@@ -14,6 +14,7 @@ import {
   YAxis,
   CartesianGrid,
   Cell,
+  LabelList,
 } from "recharts";
 import { motion } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -67,7 +68,7 @@ export function AffirmRateChart({ data }: AffirmRateChartProps) {
               <BarChart
                 data={radarData}
                 layout="vertical"
-                margin={{ top: 0, right: 32, left: 8, bottom: 0 }}
+                margin={{ top: 0, right: 44, left: 8, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
                 <XAxis
@@ -95,6 +96,12 @@ export function AffirmRateChart({ data }: AffirmRateChartProps) {
                       fillOpacity={0.8}
                     />
                   ))}
+                  <LabelList
+                    dataKey="affirmRate"
+                    position="right"
+                    formatter={(v: number) => `${v}%`}
+                    style={{ fill: TICK, fontSize: 11, fontFamily: "IBM Plex Mono, monospace" }}
+                  />
                 </Bar>
               </BarChart>
             ) : (

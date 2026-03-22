@@ -11,6 +11,18 @@ from backend.prediction.features import FEATURE_NAMES
 
 MODEL_PATH = Path("data/models/xgboost_calibrated.pkl")
 
+FEATURE_DISPLAY_NAMES: dict[str, str] = {
+    "mean_year":              "Avg case age",
+    "mean_score":             "Avg similarity",
+    "top_score":              "Top match score",
+    "year_spread":            "Year variance",
+    "frac_affirmed":          "% affirmed neighbors",
+    "frac_reversed":          "% reversed neighbors",
+    "affirm_rate_neighbors":  "Neighbor affirm rate",
+    "reverse_rate_neighbors": "Neighbor reversal rate",
+    "max_similarity_score":   "Best match score",
+}
+
 
 class SHAPExplainer:
     def __init__(self) -> None:
@@ -44,7 +56,7 @@ class SHAPExplainer:
 
         result = [
             {
-                "feature": fname,
+                "feature": FEATURE_DISPLAY_NAMES.get(fname, fname),
                 "value": round(float(val), 6),
                 "direction": "+" if val >= 0 else "-",
             }

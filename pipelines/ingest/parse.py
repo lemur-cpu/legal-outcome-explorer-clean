@@ -12,6 +12,19 @@ OUTPUT_FILE = PROCESSED_DIR / "parsed_cases.jsonl"
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
+SUMMARY_ORDER_PATTERNS = [
+    "summary order",
+    "rulings by summary order",
+    "not have precedential effect",
+    "per curiam",
+    "this disposition is not appropriate for publication",
+]
+
+
+def is_summary_order(text: str) -> bool:
+    text_lower = text[:500].lower()
+    return any(p in text_lower for p in SUMMARY_ORDER_PATTERNS)
+
 
 def strip_html(text: str) -> str:
     return _TAG_RE.sub(" ", text).strip()
@@ -80,6 +93,7 @@ def parse() -> None:
     filtered_empty = 0
     filtered_short = 0
     filtered_no_year = 0
+    filtered_summary_order = 0
 
     with OUTPUT_FILE.open("w") as out:
         for path in raw_files:
@@ -109,17 +123,22 @@ def parse() -> None:
                     filtered_no_year += 1
                     continue
 
+                if is_summary_order(parsed["full_text"]):
+                    filtered_summary_order += 1
+                    continue
+
                 out.write(json.dumps(parsed) + "\n")
                 total_parsed += 1
 
-    total_filtered = filtered_empty + filtered_short + filtered_no_year
+    total_filtered = filtered_empty + filtered_short + filtered_no_year + filtered_summary_order
     logger.info(
         f"Parsing complete. "
         f"Saved: {total_parsed} | "
         f"Filtered: {total_filtered} "
         f"(empty text: {filtered_empty}, "
         f"<100 tokens: {filtered_short}, "
-        f"no year: {filtered_no_year})"
+        f"no year: {filtered_no_year}, "
+        f"summary orders: {filtered_summary_order})"
     )
     logger.info(f"Output → {OUTPUT_FILE}")
 

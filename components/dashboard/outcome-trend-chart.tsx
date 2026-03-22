@@ -64,7 +64,7 @@ interface OutcomeTrendChartProps {
 
 export function OutcomeTrendChart({ data, title, subtitle }: OutcomeTrendChartProps) {
   const chartData  = data ?? [];
-  const chartTitle = title ?? "Outcome Trends";
+  const chartTitle = title ?? "Corpus Sample by Year";
 
   return (
     <motion.div
