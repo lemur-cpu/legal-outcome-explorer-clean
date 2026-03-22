@@ -13,6 +13,26 @@ from tqdm import tqdm
 from backend.config import settings
 
 LABELED_FILE = Path("data/processed/labeled_cases.jsonl")
+
+OPINION_MARKERS = [
+    "Circuit Judges.\n", "Circuit Judge.\n", "District Judge.\n",
+    "\nPER CURIAM\n", "\nMEMORANDUM\n",
+]
+
+
+def extract_snippet(text: str, length: int = 300) -> str:
+    # Find the judge panel line, then skip ~800 chars to clear the counsel listing
+    start = 0
+    for marker in OPINION_MARKERS:
+        idx = text.upper().find(marker.upper())
+        if idx != -1 and idx < 3000:
+            start = idx + len(marker) + 800
+            break
+    if start == 0 or start > len(text):
+        start = 1200
+    snippet = text[start:start + length].strip()
+    snippet = " ".join(snippet.split())
+    return snippet if len(snippet) > 50 else " ".join(text[1200:1200 + length].split())
 MODEL_NAME = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "precedents"
 VECTOR_DIM = 384
@@ -57,7 +77,7 @@ def embed_and_upsert(
                     "year": case.get("year"),
                     "outcome": case["outcome"],
                     "label_confidence": case["label_confidence"],
-                    "snippet": case["full_text"][:300],
+                    "snippet": extract_snippet(case["full_text"]),
                 },
             )
             for case, vector in zip(batch_cases, vectors)

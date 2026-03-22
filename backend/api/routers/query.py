@@ -17,6 +17,26 @@ from backend.retrieval.vector_search import search as vector_search
 
 router = APIRouter()
 
+OPINION_MARKERS = [
+    "Circuit Judges.\n", "Circuit Judge.\n", "District Judge.\n",
+    "\nPER CURIAM\n", "\nMEMORANDUM\n",
+]
+
+
+def extract_snippet(text: str, length: int = 300) -> str:
+    # Find the judge panel line, then skip ~800 chars to clear the counsel listing
+    start = 0
+    for marker in OPINION_MARKERS:
+        idx = text.upper().find(marker.upper())
+        if idx != -1 and idx < 3000:
+            start = idx + len(marker) + 800
+            break
+    if start == 0 or start > len(text):
+        start = 1200
+    snippet = text[start:start + length].strip()
+    snippet = " ".join(snippet.split())
+    return snippet if len(snippet) > 50 else " ".join(text[1200:1200 + length].split())
+
 
 @router.post("/query", response_model=QueryResponse)
 async def run_query(req: QueryRequest) -> QueryResponse:
@@ -50,9 +70,7 @@ async def run_query(req: QueryRequest) -> QueryResponse:
     for c in reranked:
         display_score = min(99, max(1, c["display_score"]))
 
-        text = c.get("snippet", "")
-        snippet = text[300:500] if len(text) > 500 else text[200:]
-        snippet = snippet.strip()
+        snippet = c.get("snippet", "").strip()
 
         results.append({
             "case_id": c["case_id"],

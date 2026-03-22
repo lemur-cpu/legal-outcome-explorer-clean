@@ -12,7 +12,7 @@ TTL = 3600  # seconds
 
 
 def _cache_key(query: str) -> str:
-    return "query:" + hashlib.sha256(query.encode()).hexdigest()
+    return "query_v2:" + hashlib.sha256(query.encode()).hexdigest()
 
 
 def get_cached(query: str) -> dict | None:
