@@ -16,17 +16,24 @@ appeal outcome (affirmed / reversed) using a calibrated XGBoost classifier.
 ## Evaluation
 
 Corpus: 1,663 labeled federal appellate opinions (affirmed / reversed).
+
 Courts: ca1, ca2, ca5, ca9, cadc, cafc.
+
 Class balance fix: SMOTE oversampling (8.5:1 → balanced training set).
+
 
 | Model               | F1     | AUC    | ECE    | Threshold |
 |---------------------|--------|--------|--------|-----------|
 | Logistic Regression | 0.5574 | 0.7191 | 0.3735 | 0.645     |
 | XGBoost + Platt     | 0.5668 | 0.6735 | 0.0089 | 0.098     |
 
-XGBoost deployed. Low threshold (0.098) reflects 8.5:1 class imbalance corrected
-via SMOTE oversampling on training set only. LR excluded from deployment due to
-ECE 0.37 (poorly calibrated). Latency: ~1800ms p95 end-to-end.
+XGBoost deployed. 
+Low threshold (0.098) reflects 8.5:1 class imbalance corrected 
+via SMOTE oversampling on training set only. 
+
+LR excluded from deployment due to ECE 0.37 (poorly calibrated). 
+
+Latency: ~1800ms p95 end-to-end.
 
 ## Quick Start
 
